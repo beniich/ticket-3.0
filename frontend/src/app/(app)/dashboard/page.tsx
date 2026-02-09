@@ -4,7 +4,16 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
 import { KPICard } from '@/components/ui/KPICard';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import api from '@/lib/api';
+
+const activityColors: Record<string, { bg: string; text: string; border: string }> = {
+    blue: { bg: 'bg-blue-500/10', text: 'text-blue-500', border: 'border-blue-500/20' },
+    amber: { bg: 'bg-amber-500/10', text: 'text-amber-500', border: 'border-amber-500/20' },
+    emerald: { bg: 'bg-emerald-500/10', text: 'text-emerald-500', border: 'border-emerald-500/20' },
+    purple: { bg: 'bg-purple-500/10', text: 'text-purple-500', border: 'border-purple-500/20' },
+    rose: { bg: 'bg-rose-500/10', text: 'text-rose-500', border: 'border-rose-500/20' },
+};
 
 export default function DashboardPage() {
     const [currentTime, setCurrentTime] = useState(new Date());
@@ -27,7 +36,7 @@ export default function DashboardPage() {
     }, []);
 
     return (
-        <div className="space-y-8 font-display">
+        <div className="space-y-8 font-sans">
             {/* Header du Dashboard */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
@@ -69,7 +78,7 @@ export default function DashboardPage() {
                     label="En Cours"
                     val={stats.active}
                     sub="Interventions actives"
-                    icon="pending_actions"
+                    icon="blue-500"
                     color="blue-500"
                 />
                 <KPICard
@@ -115,9 +124,9 @@ export default function DashboardPage() {
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
                                 {[
-                                    { id: '#CM-2039', cat: 'Fuite d\'eau', loc: 'Rabat - Agdal', status: 'Nouveau', color: 'primary', team: 'A1', time: '2 min ago', icon: 'water_drop' },
-                                    { id: '#CM-2038', cat: 'Éclairage Public', loc: 'Salé - Hay Salam', status: 'En Cours', color: 'amber-500', team: 'B4', time: '14 min ago', icon: 'lightbulb' },
-                                    { id: '#CM-2035', cat: 'Collecte Déchets', loc: 'Rabat - Hassan', status: 'Résolu', color: 'emerald-500', team: 'C2', time: '1h ago', icon: 'delete' },
+                                    { id: '#CM-2039', cat: 'Fuite d\'eau', loc: 'Rabat - Agdal', status: 'nouvelle', team: 'A1', time: '2 min ago', icon: 'water_drop' },
+                                    { id: '#CM-2038', cat: 'Éclairage Public', loc: 'Salé - Hay Salam', status: 'en cours', team: 'B4', time: '14 min ago', icon: 'lightbulb' },
+                                    { id: '#CM-2035', cat: 'Collecte Déchets', loc: 'Rabat - Hassan', status: 'résolue', team: 'C2', time: '1h ago', icon: 'delete' },
                                 ].map((item, idx) => (
                                     <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-all group cursor-pointer">
                                         <td className="px-8 py-5">
@@ -138,9 +147,7 @@ export default function DashboardPage() {
                                             </div>
                                         </td>
                                         <td className="px-8 py-5">
-                                            <span className={`px-3 py-1 bg-${item.color}/10 text-${item.color} text-[9px] font-black uppercase rounded-lg border border-${item.color}/20`}>
-                                                {item.status}
-                                            </span>
+                                            <StatusBadge status={item.status} size="sm" />
                                         </td>
                                         <td className="px-8 py-5">
                                             <div className="size-8 rounded-full bg-slate-900 text-white flex items-center justify-center text-[10px] font-black border-2 border-white dark:border-slate-800">
@@ -175,18 +182,21 @@ export default function DashboardPage() {
                             { color: 'emerald', icon: 'check_circle', title: 'Ticket Résolu', desc: '#CM-2035 - Collecte effectuée', time: 'Il y a 1h' },
                             { color: 'purple', icon: 'update', title: 'Status Mis à Jour', desc: '#CM-2030 passé "En Cours"', time: 'Il y a 2h' },
                             { color: 'rose', icon: 'priority_high', title: 'Urgence Signalée', desc: '#CM-2025 - Fuite de gaz suspectée', time: 'Il y a 3h' },
-                        ].map((act, i) => (
-                            <div key={i} className="flex gap-5 group cursor-pointer">
-                                <div className={`size-10 rounded-2xl bg-${act.color}-500/10 flex items-center justify-center shrink-0 border border-${act.color}-500/20 group-hover:scale-110 transition-transform`}>
-                                    <span className={`material-symbols-outlined text-${act.color}-500 text-lg`}>{act.icon}</span>
+                        ].map((act, i) => {
+                            const colors = activityColors[act.color] || activityColors.blue;
+                            return (
+                                <div key={i} className="flex gap-5 group cursor-pointer">
+                                    <div className={`size-10 rounded-2xl ${colors.bg} ${colors.text} flex items-center justify-center shrink-0 border ${colors.border} group-hover:scale-110 transition-transform`}>
+                                        <span className={`material-symbols-outlined text-lg`}>{act.icon}</span>
+                                    </div>
+                                    <div className="border-b border-white/5 pb-4 flex-1">
+                                        <p className="text-sm font-black text-white uppercase tracking-tight italic">{act.title}</p>
+                                        <p className="text-xs text-slate-400 mt-1 font-medium">{act.desc}</p>
+                                        <p className="text-[9px] font-black text-slate-500 mt-2 uppercase tracking-widest">{act.time}</p>
+                                    </div>
                                 </div>
-                                <div className="border-b border-white/5 pb-4 flex-1">
-                                    <p className="text-sm font-black text-white uppercase tracking-tight italic">{act.title}</p>
-                                    <p className="text-xs text-slate-400 mt-1 font-medium">{act.desc}</p>
-                                    <p className="text-[9px] font-black text-slate-500 mt-2 uppercase tracking-widest">{act.time}</p>
-                                </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             </div>
@@ -254,26 +264,6 @@ export default function DashboardPage() {
                     </div>
                 </div>
             </div>
-
-            <style jsx global>{`
-                @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap');
-                
-                body {
-                    font-family: 'Outfit', sans-serif;
-                }
-                
-                .font-display {
-                    font-family: 'Outfit', sans-serif;
-                }
-
-                .scrollbar-hide::-webkit-scrollbar {
-                    display: none;
-                }
-                .scrollbar-hide {
-                    -ms-overflow-style: none;
-                    scrollbar-width: none;
-                }
-            `}</style>
         </div>
     );
 }
