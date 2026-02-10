@@ -1,18 +1,30 @@
-import { Router } from 'express';
-import { protect } from '../middleware/auth.js';
-import { body } from 'express-validator';
-import { validator } from '../middleware/validator.js';
+import express from 'express';
+import { body, param } from 'express-validator';
 import { Assignment } from '../models/Assignment.js';
 import { Complaint } from '../models/Complaint.js';
 import { Team } from '../models/Team.js';
+import { Intervention } from '../models/Intervention.js';
+import { validator } from '../middleware/validator.js';
 import { io } from '../services/socketService.js';
 
-const router = Router();
+const router = express.Router();
 
-/* POST /api/assignments */
+// Get all assignments
+router.get('/', async (req, res, next) => {
+    try {
+        const assignments = await Assignment.find()
+            .populate('complaintId')
+            .populate('teamId')
+            .sort({ createdAt: -1 });
+        res.json(assignments);
+    } catch (err) {
+        next(err);
+    }
+});
+
+// Create assignment (links complaint to team)
 router.post(
     '/',
-    protect,
     [
         body('complaintId').isMongoId(),
         body('teamId').isMongoId()
@@ -22,56 +34,71 @@ router.post(
         try {
             const { complaintId, teamId } = req.body;
 
-            const complaint = await Complaint.findById(complaintId);
-            const team = await Team.findById(teamId);
-            if (!complaint || !team) {
-                return res.status(404).json({ message: 'Réclamation ou équipe introuvable' });
-            }
-
+            // 1. Create Assignment
             const assignment = await Assignment.create({
                 complaintId,
                 teamId,
                 status: 'affecté'
             });
 
-            complaint.status = 'en cours';
-            await complaint.save();
+            // 2. Update Complaint Status
+            const updatedComplaint = await Complaint.findByIdAndUpdate(
+                complaintId,
+                { status: 'en cours' },
+                { new: true }
+            );
 
-            team.status = 'intervention';
-            await team.save();
+            // 3. Update Team Status
+            await Team.findByIdAndUpdate(teamId, { status: 'intervention' });
+
+            // 4. Automatically create an Intervention (optional, but requested in some context)
+            const intervention = await Intervention.create({
+                complaintId,
+                teamId,
+                title: `Intervention pour ${updatedComplaint?.number}`,
+                description: `Réparation suite à la réclamation ${updatedComplaint?.number}`,
+                status: 'En attente',
+                priority: 'Moyenne'
+            });
+
+            const populated = await assignment.populate(['complaintId', 'teamId']);
 
             if (io) {
-                io.emit('assignment-created', { assignment, complaint, team });
+                io.emit('new-assignment', populated);
+                io.emit('complaint-updated', updatedComplaint);
+                io.emit('new-intervention', intervention);
             }
 
-            res.status(201).json(assignment);
+            res.status(201).json(populated);
         } catch (err) {
             next(err);
         }
     }
 );
 
-/* PATCH /api/assignments/:id */
+// Update assignment status
 router.patch(
     '/:id',
-    protect,
     [
+        param('id').isMongoId(),
         body('status').isIn(['affecté', 'en cours', 'terminé'])
     ],
     validator,
     async (req, res, next) => {
         try {
-            const assignment = await Assignment.findByIdAndUpdate(
+            const updated = await Assignment.findByIdAndUpdate(
                 req.params.id,
                 { status: req.body.status },
                 { new: true }
-            );
-            if (!assignment) return res.status(404).json({ message: 'Affectation introuvable' });
+            ).populate(['complaintId', 'teamId']);
+
+            if (!updated) return res.status(404).json({ message: 'Affectation introuvable' });
 
             if (io) {
-                io.emit('assignment-updated', assignment);
+                io.emit('assignment-updated', updated);
             }
-            res.json(assignment);
+
+            res.json(updated);
         } catch (err) {
             next(err);
         }

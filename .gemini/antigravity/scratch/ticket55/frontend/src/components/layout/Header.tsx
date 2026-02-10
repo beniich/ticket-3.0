@@ -1,95 +1,73 @@
-
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
-import { useAuthStore } from '@/store/authStore';
-import { Bell, Search, Settings, User, LogOut } from 'lucide-react';
-import { Button } from '@/components/ui/button'; // Assuming Button component exists
+import { useState } from 'react';
 
-interface HeaderProps {
-    showSearch?: boolean;
-    breadcrumbs?: { label: string; href: string }[];
-}
-
-export function Header({ showSearch = true, breadcrumbs }: HeaderProps) {
-    const { user, logout } = useAuthStore();
-    const [searchQuery, setSearchQuery] = useState('');
+export function Header() {
+    const [searchFocused, setSearchFocused] = useState(false);
 
     return (
-        <header className="h-16 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-slate-900 px-6 flex items-center justify-between sticky top-0 z-50">
-            {/* Logo & Breadcrumbs */}
-            <div className="flex items-center gap-8">
-                <div className="flex items-center gap-3">
-                    <div className="bg-primary p-1.5 rounded-lg text-white">
-                        <span className="material-symbols-outlined block">account_balance</span>
-                        {/* Note: Ensure Material Symbols are loaded or use Lucide Icon replacement if preferred */}
-                    </div>
-                    <div className="flex flex-col">
-                        <h1 className="text-lg font-bold leading-none tracking-tight text-gray-900 dark:text-white">
-                            ReclamTrack
+        <header className="sticky top-0 z-50 bg-surface-dark/80 backdrop-blur-md border-b border-border-dark px-6 py-3">
+            <div className="max-w-[1440px] mx-auto flex items-center justify-between">
+                <div className="flex items-center gap-8">
+                    <div className="flex items-center gap-2">
+                        <div className="bg-primary p-1.5 rounded-lg text-white">
+                            <span className="material-symbols-outlined block">confirmation_number</span>
+                        </div>
+                        <h1 className="text-lg font-bold tracking-tight text-white">
+                            Intervention<span className="text-primary">Hub</span>
                         </h1>
-                        <span className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">
-                            Municipal Services
-                        </span>
                     </div>
-                </div>
-
-                {breadcrumbs && (
-                    <nav className="hidden md:flex items-center gap-2 text-sm">
-                        {breadcrumbs.map((crumb, i) => (
-                            <div key={i} className="flex items-center gap-2">
-                                {i > 0 && <span className="text-gray-400">/</span>}
-                                <Link
-                                    href={crumb.href}
-                                    className="text-gray-600 dark:text-gray-400 hover:text-primary transition-colors"
-                                >
-                                    {crumb.label}
-                                </Link>
-                            </div>
-                        ))}
+                    <nav className="hidden md:flex items-center gap-6">
+                        <Link
+                            href="#"
+                            className="text-sm font-medium text-slate-400 hover:text-white transition-colors"
+                        >
+                            Dashboard
+                        </Link>
+                        <Link
+                            href="#"
+                            className="text-sm font-semibold text-primary"
+                        >
+                            Complaints
+                        </Link>
+                        <Link
+                            href="#"
+                            className="text-sm font-medium text-slate-400 hover:text-white transition-colors"
+                        >
+                            Teams
+                        </Link>
+                        <Link
+                            href="#"
+                            className="text-sm font-medium text-slate-400 hover:text-white transition-colors"
+                        >
+                            Reports
+                        </Link>
                     </nav>
-                )}
-            </div>
-
-            {/* Search Bar */}
-            {showSearch && (
-                <div className="hidden md:flex items-center bg-gray-100 dark:bg-slate-800 rounded-lg px-3 py-1.5 w-80 relative">
-                    <Search className="text-gray-400 w-4 h-4 absolute left-3" />
-                    <input
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="bg-transparent border-none focus:ring-0 text-sm w-full pl-8 placeholder:text-gray-400 outline-none"
-                        placeholder="Search complaint ID, location..."
-                    />
                 </div>
-            )}
-
-            {/* Actions */}
-            <div className="flex items-center gap-4">
-                <button className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full relative transition-colors">
-                    <Bell className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                    <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-900" />
-                </button>
-
-                <button className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors">
-                    <Settings className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                </button>
-
-                <div className="h-8 w-px bg-gray-200 dark:bg-gray-700 mx-2" />
-
-                <div className="flex items-center gap-3 pl-2">
-                    <div className="text-right hidden sm:block">
-                        <p className="text-xs font-semibold text-gray-900 dark:text-white">{user?.name}</p>
-                        <p className="text-[10px] text-gray-500 uppercase">{user?.role}</p>
+                <div className="flex items-center gap-4">
+                    <div className="relative hidden lg:block">
+                        <span className={`material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-xl transition-colors ${searchFocused ? 'text-primary' : 'text-slate-500'}`}>
+                            search
+                        </span>
+                        <input
+                            className="bg-slate-900 border-border-dark border rounded-lg pl-10 pr-4 py-2 text-sm w-64 focus:ring-2 focus:ring-primary text-slate-300 placeholder:text-slate-600 outline-none transition-all"
+                            placeholder="Search tickets..."
+                            type="text"
+                            onFocus={() => setSearchFocused(true)}
+                            onBlur={() => setSearchFocused(false)}
+                        />
                     </div>
-                    <div className="h-10 w-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden">
-                        {user?.avatar ? (
-                            <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
-                        ) : (
-                            <User className="w-5 h-5 text-primary" />
-                        )}
+                    <button className="p-2 rounded-lg hover:bg-slate-800 text-slate-400 relative transition-colors">
+                        <span className="material-symbols-outlined">notifications</span>
+                        <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-surface-dark"></span>
+                    </button>
+                    <div className="w-8 h-8 rounded-full bg-slate-700 overflow-hidden border border-border-dark cursor-pointer hover:ring-2 hover:ring-primary transition-all">
+                        <img
+                            alt="User profile avatar"
+                            className="w-full h-full object-cover"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuD7Ew0JGt278WMCLTQZEheYW7POzl6td2OVh-AxEPOvAhXsRQc4Wv5J0uVsNPW2ASgulBBWC_QvDRUX33Lsmw3nHkmA4F4QBoTNmx2nmWhMBvD5Q3sSYuonHiriVyKqX5RLdqAO853pUe5WTg-sm5kgpMQu-hUD5xojrbt620RRqx_lMH2YMn_2ahGoFBitVN7T2gVs_ER7x5DtQk-EeZapPLgHzzIazbkOobxGLNGNHWidoe2NaAjkztPSOmlgVdpEDjH0y8aUJce7"
+                        />
                     </div>
                 </div>
             </div>

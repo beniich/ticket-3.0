@@ -1,148 +1,141 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/api';
+import socketService from '@/lib/socket';
+
+export type ComplaintStatus = 'nouvelle' | 'en cours' | 'résolue' | 'fermée';
+export type ComplaintPriority = 'low' | 'medium' | 'high' | 'urgent';
 
 export interface Complaint {
-    id: string;
-    ticketId: string;
-    category: string;
-    priority: 'low' | 'medium' | 'high' | 'urgent';
-    status: 'pending' | 'assigned' | 'in_progress' | 'resolved' | 'closed';
-    description: string;
-    location: {
-        address: string;
-        coordinates: {
-            lat: number;
-            lng: number;
-        };
-    };
-    photos: string[];
-    reportedBy: {
-        id: string;
-        name: string;
-        email: string;
-    };
-    assignedTo?: {
-        id: string;
-        name: string;
-        department: string;
-    };
-    createdAt: string;
-    updatedAt: string;
-}
-
-export interface ComplaintFilters {
-    status?: string;
-    priority?: string;
+    _id: string;
+    number: string;
+    firstName: string;
+    lastName: string;
+    address: string;
+    phone: string;
+    leakType: string;
+    description?: string;
+    priority?: ComplaintPriority;
     category?: string;
-    search?: string;
+    status: ComplaintStatus;
+    assignedTo?: string;
+    location?: {
+        address?: string;
+        lat?: number;
+        lng?: number;
+    };
+    resolvedAt?: Date;
+    closedAt?: Date;
+    createdAt: Date;
+    updatedAt: Date;
 }
 
-interface Pagination {
-    page: number;
-    limit: number;
-    total: number;
-    pages: number;
+export interface CreateComplaintData {
+    firstName: string;
+    lastName: string;
+    address: string;
+    phone: string;
+    leakType: string;
+    description?: string;
+    priority?: ComplaintPriority;
+    category?: string;
+    location?: {
+        address?: string;
+        lat?: number;
+        lng?: number;
+    };
 }
 
 /**
  * Hook principal pour gérer la liste des réclamations
  */
-export const useComplaints = (initialFilters: ComplaintFilters = {}) => {
+export const useComplaints = () => {
     const [complaints, setComplaints] = useState<Complaint[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [pagination, setPagination] = useState<Pagination>({
-        page: 1,
-        limit: 20,
-        total: 0,
-        pages: 0
-    });
-    const [filters, setFilters] = useState<ComplaintFilters>(initialFilters);
 
-    const fetchComplaints = useCallback(async (page: number = 1) => {
+    // Fetch all complaints
+    const fetchComplaints = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
-
-            const queryParams = new URLSearchParams({
-                page: page.toString(),
-                limit: '20',
-                ...Object.fromEntries(
-                    Object.entries(filters).filter(([_, v]) => v !== undefined && v !== '')
-                )
-            });
-
-            const response = await api.get(`/complaints?${queryParams}`);
-            const data = response.data;
-
-            setComplaints(data.data);
-            setPagination(data.pagination);
+            const response = await api.get('/complaints');
+            setComplaints(response.data);
         } catch (err: any) {
-            console.error('Erreur fetch complaints:', err);
-            setError(err.response?.data?.error || 'Erreur lors du chargement des réclamations');
+            console.error('Error fetching complaints:', err);
+            setError(err.response?.data?.message || 'Erreur lors du chargement des réclamations');
         } finally {
             setLoading(false);
         }
-    }, [filters]);
+    }, []);
 
-    const refreshComplaints = () => {
-        fetchComplaints(pagination.page);
-    };
+    // Create new complaint
+    const createComplaint = useCallback(async (data: CreateComplaintData) => {
+        try {
+            const response = await api.post('/complaints', data);
+            setComplaints(prev => [response.data, ...prev]);
+            return { success: true, data: response.data };
+        } catch (err: any) {
+            console.error('Error creating complaint:', err);
+            return {
+                success: false,
+                error: err.response?.data?.message || 'Erreur lors de la création de la réclamation'
+            };
+        }
+    }, []);
 
-    const goToPage = (page: number) => {
-        fetchComplaints(page);
-    };
+    // Update complaint status
+    const updateComplaintStatus = useCallback(async (id: string, status: ComplaintStatus) => {
+        try {
+            const response = await api.patch(`/complaints/${id}`, { status });
+            setComplaints(prev =>
+                prev.map(c => c._id === id ? response.data : c)
+            );
+            return { success: true, data: response.data };
+        } catch (err: any) {
+            console.error('Error updating complaint:', err);
+            return {
+                success: false,
+                error: err.response?.data?.message || 'Erreur lors de la mise à jour'
+            };
+        }
+    }, []);
 
-    const updateFilters = (newFilters: Partial<ComplaintFilters>) => {
-        setFilters(prev => ({ ...prev, ...newFilters }));
-    };
-
-    const resetFilters = () => {
-        setFilters({});
-    };
-
+    // Initial fetch
     useEffect(() => {
-        fetchComplaints(1);
+        fetchComplaints();
     }, [fetchComplaints]);
+
+    // Real-time updates via WebSocket
+    useEffect(() => {
+        const socket = socketService.connect();
+
+        const handleNewComplaint = (complaint: Complaint) => {
+            setComplaints(prev => [complaint, ...prev]);
+        };
+
+        const handleComplaintUpdate = (updatedComplaint: Complaint) => {
+            setComplaints(prev =>
+                prev.map(c => c._id === updatedComplaint._id ? updatedComplaint : c)
+            );
+        };
+
+        socketService.on('new-complaint', handleNewComplaint);
+        socketService.on('complaint-updated', handleComplaintUpdate);
+
+        return () => {
+            socketService.off('new-complaint', handleNewComplaint);
+            socketService.off('complaint-updated', handleComplaintUpdate);
+        };
+    }, []);
 
     return {
         complaints,
         loading,
         error,
-        pagination,
-        filters,
         fetchComplaints,
-        refreshComplaints,
-        goToPage,
-        updateFilters,
-        resetFilters
+        createComplaint,
+        updateComplaintStatus
     };
-};
-
-/**
- * Hook pour créer une réclamation
- */
-export const useCreateComplaint = () => {
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    const createComplaint = async (data: Partial<Complaint>) => {
-        try {
-            setLoading(true);
-            setError(null);
-
-            const response = await api.post('/complaints', data);
-            return response.data.data;
-        } catch (err: any) {
-            const errorMsg = err.response?.data?.error || 'Erreur lors de la création';
-            setError(errorMsg);
-            throw new Error(errorMsg);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return { createComplaint, loading, error };
 };
 
 /**
@@ -154,47 +147,63 @@ export const useComplaint = (id: string) => {
     const [error, setError] = useState<string | null>(null);
 
     const fetchComplaint = useCallback(async () => {
+        if (!id) return;
+
         try {
             setLoading(true);
+            setError(null);
             const response = await api.get(`/complaints/${id}`);
-            setComplaint(response.data.data);
+            setComplaint(response.data);
         } catch (err: any) {
-            setError(err.response?.data?.error || 'Erreur chargement réclamation');
+            console.error('Error fetching complaint:', err);
+            setError(err.response?.data?.message || 'Réclamation introuvable');
         } finally {
             setLoading(false);
         }
     }, [id]);
 
-    const updateComplaint = async (updates: Partial<Complaint>) => {
+    const assignTeam = useCallback(async (teamId: string) => {
+        try {
+            const response = await api.post('/assignments', {
+                complaintId: id,
+                teamId
+            });
+            // Assignment creation triggers a complaint update via socket
+            // but we can also manually refetch or update state
+            return { success: true, data: response.data };
+        } catch (err: any) {
+            console.error('Error assigning team:', err);
+            return {
+                success: false,
+                error: err.response?.data?.message || 'Erreur lors de l\'assignation'
+            };
+        }
+    }, [id]);
+
+    const updateComplaint = useCallback(async (updates: Partial<Complaint>) => {
         try {
             const response = await api.patch(`/complaints/${id}`, updates);
-            setComplaint(response.data.data);
-            return response.data.data;
+            setComplaint(response.data);
+            return { success: true, data: response.data };
         } catch (err: any) {
-            throw new Error(err.response?.data?.error || 'Erreur mise à jour');
+            console.error('Error updating complaint:', err);
+            return {
+                success: false,
+                error: err.response?.data?.message || 'Erreur mise à jour'
+            };
         }
-    };
-
-    const assignToTeam = async (teamId: string) => {
-        try {
-            const response = await api.post(`/complaints/${id}/assign`, { teamId });
-            setComplaint(response.data.data);
-            return response.data.data;
-        } catch (err: any) {
-            throw new Error(err.response?.data?.error || 'Erreur assignation');
-        }
-    };
+    }, [id]);
 
     useEffect(() => {
-        if (id) fetchComplaint();
-    }, [id, fetchComplaint]);
+        fetchComplaint();
+    }, [fetchComplaint]);
 
     return {
         complaint,
         loading,
         error,
         updateComplaint,
-        assignToTeam,
+        assignTeam,
         refetch: fetchComplaint
     };
 };

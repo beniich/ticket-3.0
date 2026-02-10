@@ -17,6 +17,17 @@ import assignmentRoutes from './routes/assignments.js';
 import planningRoutes from './routes/planning.js';
 import dashboardRoutes from './routes/dashboard.js';
 import aiRoutes from './routes/ai.js';
+import alertRoutes from './routes/alerts.js';
+import exportRoutes from './routes/export.js';
+import messageRoutes from './routes/messages.js';
+import documentRoutes from './routes/documents.js';
+import gamificationRoutes from './routes/gamification.js';
+import interventionRoutes from './routes/interventions.js';
+import financeRoutes from './routes/finance.js';
+import inventoryRoutes from './routes/inventory.js';
+import './jobs/alertJobs.js';
+import './jobs/leaderboardJob.js';
+import './jobs/mcpJobs.js';
 
 // Validate environment
 envValidator();
@@ -46,17 +57,26 @@ app.use('/api/assignments', assignmentRoutes);
 app.use('/api/planning', planningRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/alerts', alertRoutes);
+app.use('/api/export', exportRoutes);
+app.use('/api/messages', messageRoutes);
+app.use('/api/documents', documentRoutes);
+app.use('/api/gamification', gamificationRoutes); // Added route mount
+app.use('/api/finance', financeRoutes);
+app.use('/api/inventory', inventoryRoutes);
+app.use('/uploads', express.static('uploads'));
 
-// Health check
 app.get('/', (req, res) => {
     res.json({ status: 'ok', service: 'ReclamTrack API' });
 });
+app.use('/api/interventions', interventionRoutes);
 
 // Error handler
 app.use(errorHandler);
 
 // Initialize Socket.IO
-initSocket(httpServer);
+const io = initSocket(httpServer);
+app.set('io', io);
 
 // Start server
 const start = async () => {

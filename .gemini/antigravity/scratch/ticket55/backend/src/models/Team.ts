@@ -9,6 +9,7 @@ export interface ITeam extends Document {
         lat: number;
         lng: number;
     };
+    members?: Array<{ userId: string }>;
 }
 
 const TeamSchema: Schema = new Schema(
@@ -22,7 +23,10 @@ const TeamSchema: Schema = new Schema(
         location: {
             lat: { type: Number },
             lng: { type: Number }
-        }
+        },
+        members: [{
+            userId: { type: Schema.Types.ObjectId, ref: 'User' }
+        }]
     },
     { timestamps: true }
 );

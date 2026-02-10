@@ -1,315 +1,254 @@
 'use client';
 
+import React, { useState } from 'react';
+import {
+    CheckCircle2,
+    AlertTriangle,
+    Clock,
+    MoreVertical,
+    Search,
+    Download,
+    Plus,
+    Calendar,
+    Eye
+} from 'lucide-react';
+import { useComplaints, ComplaintStatus, ComplaintPriority } from '@/hooks/useComplaints';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+
 export default function ComplaintsListPage() {
+    const { complaints, loading, error } = useComplaints();
+    const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const getStatusColor = (status: ComplaintStatus) => {
+        switch (status) {
+            case 'résolue': return 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800';
+            case 'en cours': return 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800';
+            case 'nouvelle': return 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800';
+            case 'fermée': return 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
+            default: return 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
+        }
+    };
+
+    const getPriorityColor = (priority?: ComplaintPriority) => {
+        switch (priority) {
+            case 'urgent': return 'text-red-600 bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-900/30';
+            case 'high': return 'text-orange-600 bg-orange-50 dark:bg-orange-900/20 border-orange-100 dark:border-orange-900/30';
+            case 'medium': return 'text-blue-600 bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-900/30';
+            case 'low': return 'text-slate-500 bg-slate-50 dark:bg-slate-900/50 border-slate-100 dark:border-slate-800';
+            default: return 'text-slate-500 bg-slate-50 dark:bg-slate-900/50 border-slate-100 dark:border-slate-800';
+        }
+    };
+
+    const stats = {
+        open: complaints.filter(c => c.status === 'nouvelle' || c.status === 'en cours').length,
+        critical: complaints.filter(c => c.priority === 'urgent').length,
+        resolvedToday: complaints.filter(c => c.status === 'résolue' && new Date(c.updatedAt).toDateString() === new Date().toDateString()).length,
+        total: complaints.length
+    };
+
+    const filteredComplaints = complaints.filter(c =>
+        c.number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        `${c.firstName} ${c.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.leakType.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    if (loading && complaints.length === 0) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+        );
+    }
+
     return (
-        <div className="bg-background-light dark:bg-background-dark text-[#0e0e1b] dark:text-white min-h-screen font-display flex flex-col">
-            {/* Top Navigation Bar */}
-            <header className="flex items-center justify-between border-b border-solid border-[#e7e7f3] dark:border-[#2a2a4a] bg-white dark:bg-slate-900 px-6 py-4 lg:px-10 sticky top-0 z-50">
-                <div className="flex items-center gap-4 text-[#0e0e1b] dark:text-white">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-white">
-                        <span className="material-symbols-outlined text-2xl">confirmation_number</span>
+        <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen font-display flex flex-col">
+            {/* Header */}
+            <header className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-background-dark/50 flex items-center justify-between px-6 sticky top-0 z-40 backdrop-blur-md">
+                <div className="flex items-center gap-4">
+                    <div className="bg-primary/10 p-2 rounded-lg">
+                        <AlertTriangle className="text-primary w-6 h-6" />
                     </div>
                     <div>
-                        <h2 className="text-lg font-bold leading-tight tracking-tight">Complaint Management</h2>
-                        <p className="text-xs text-[#4d4d99] dark:text-slate-400">Service & Intervention Dashboard</p>
+                        <h1 className="font-bold text-xl tracking-tight">Complaint Management</h1>
+                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Service & Intervention Dashboard</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-4">
-                    <div className="hidden md:flex items-center gap-2 mr-4">
-                        <button className="p-2 text-[#4d4d99] dark:text-slate-400 hover:text-primary transition-colors">
-                            <span className="material-symbols-outlined">notifications</span>
-                        </button>
-                        <button className="p-2 text-[#4d4d99] dark:text-slate-400 hover:text-primary transition-colors">
-                            <span className="material-symbols-outlined">help_outline</span>
-                        </button>
-                    </div>
-                    <a href="/complaints/new" className="flex items-center justify-center gap-2 rounded-lg bg-primary h-10 px-4 text-white text-sm font-bold transition-all hover:bg-opacity-90 shadow-lg shadow-primary/20">
-                        <span className="material-symbols-outlined text-lg">add</span>
-                        <span>New Complaint</span>
+                <div className="flex items-center gap-3">
+                    <a href="/complaints/new" className="bg-primary text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-primary/90 transition-all shadow-sm shadow-primary/20 text-sm font-bold">
+                        <Plus className="w-4 h-4" />
+                        New Complaint
                     </a>
-                    <div
-                        className="h-10 w-10 rounded-full bg-cover bg-center border-2 border-primary/20"
-                        style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop")' }}
-                    ></div>
                 </div>
             </header>
 
-            <main className="flex-1 flex flex-col p-4 lg:p-10 max-w-[1600px] mx-auto w-full">
-                {/* Header Section */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
-                    <div>
-                        <h1 className="text-3xl font-black tracking-tight mb-2">Advanced Complaint List</h1>
-                        <p className="text-[#4d4d99] dark:text-slate-400">Manage, filter, and track all service interventions in real-time.</p>
+            <main className="flex-1 p-6 md:p-8 overflow-y-auto">
+                {error && (
+                    <div className="max-w-[1600px] mx-auto mb-6 p-4 bg-red-50 border border-red-200 text-red-600 rounded-xl">
+                        {error}
                     </div>
-                    <div className="flex items-center gap-3">
-                        <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-slate-900 border border-[#e7e7f3] dark:border-[#2a2a4a] text-sm font-semibold shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                            <span className="material-symbols-outlined text-lg">picture_as_pdf</span>
-                            Export PDF
-                        </button>
-                        <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-slate-900 border border-[#e7e7f3] dark:border-[#2a2a4a] text-sm font-semibold shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                            <span className="material-symbols-outlined text-lg">assignment_ind</span>
-                            Assign Selected
-                        </button>
-                    </div>
-                </div>
+                )}
 
-                {/* Filter Bar Section */}
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-[#e7e7f3] dark:border-[#2a2a4a] p-4 mb-6 shadow-sm">
-                    <div className="flex flex-col lg:flex-row gap-4 items-center">
-                        <div className="relative w-full lg:flex-1">
-                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#4d4d99] pointer-events-none">search</span>
-                            <input
-                                className="w-full h-11 pl-10 pr-4 rounded-lg bg-[#f8f8fc] dark:bg-slate-800/50 border-none focus:ring-2 focus:ring-primary text-sm font-medium placeholder:text-slate-400"
-                                placeholder="Search by ID, customer, nature..."
-                                type="text"
-                            />
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-                            <button className="flex items-center gap-2 h-11 px-4 rounded-lg bg-[#f8f8fc] dark:bg-slate-800/50 text-sm font-medium border border-transparent hover:border-[#e7e7f3] dark:hover:border-[#2a2a4a] transition-all">
-                                <span className="material-symbols-outlined text-lg">calendar_today</span>
-                                <span>Date Range</span>
-                                <span className="material-symbols-outlined text-lg">keyboard_arrow_down</span>
-                            </button>
-                            <button className="flex items-center gap-2 h-11 px-4 rounded-lg bg-[#f8f8fc] dark:bg-slate-800/50 text-sm font-medium border border-transparent hover:border-[#e7e7f3] dark:hover:border-[#2a2a4a] transition-all">
-                                <span className="material-symbols-outlined text-lg">groups</span>
-                                <span>Team</span>
-                                <span className="material-symbols-outlined text-lg">keyboard_arrow_down</span>
-                            </button>
-                            <button className="flex items-center gap-2 h-11 px-4 rounded-lg bg-[#f8f8fc] dark:bg-slate-800/50 text-sm font-medium border border-transparent hover:border-[#e7e7f3] dark:hover:border-[#2a2a4a] transition-all">
-                                <span className="material-symbols-outlined text-lg">pending_actions</span>
-                                <span>Status</span>
-                                <span className="material-symbols-outlined text-lg">keyboard_arrow_down</span>
-                            </button>
-                            <button className="flex items-center gap-2 h-11 px-4 rounded-lg bg-[#f8f8fc] dark:bg-slate-800/50 text-sm font-medium border border-transparent hover:border-[#e7e7f3] dark:hover:border-[#2a2a4a] transition-all">
-                                <span className="material-symbols-outlined text-lg">priority_high</span>
-                                <span>Priority</span>
-                                <span className="material-symbols-outlined text-lg">keyboard_arrow_down</span>
-                            </button>
-                            <button className="flex items-center justify-center h-11 w-11 rounded-lg bg-primary text-white shadow-md hover:bg-primary/90 transition-colors">
-                                <span className="material-symbols-outlined">filter_list</span>
-                            </button>
-                        </div>
-                    </div>
-                    {/* Active Filter Pills */}
-                    <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-[#e7e7f3] dark:border-[#2a2a4a]">
-                        <span className="text-xs font-bold uppercase tracking-wider text-[#4d4d99] mr-2 self-center">Active Filters:</span>
-                        <div className="flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-primary/20">
-                            Team: Alpha
-                            <button className="hover:bg-primary/20 rounded-full p-0.5"><span className="material-symbols-outlined text-sm block">close</span></button>
-                        </div>
-                        <div className="flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-primary/20">
-                            Status: In Progress
-                            <button className="hover:bg-primary/20 rounded-full p-0.5"><span className="material-symbols-outlined text-sm block">close</span></button>
-                        </div>
-                        <button className="text-xs font-bold text-primary hover:underline ml-2">Clear All</button>
-                    </div>
-                </div>
-
-                {/* Data Table Container */}
-                <div className="flex-1 bg-white dark:bg-slate-900 rounded-xl border border-[#e7e7f3] dark:border-[#2a2a4a] overflow-hidden shadow-sm flex flex-col">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="bg-[#f8f8fc] dark:bg-[#111121] border-b border-[#e7e7f3] dark:border-[#2a2a4a]">
-                                    <th className="p-4 w-12 text-center">
-                                        <input className="rounded border-[#e7e7f3] text-primary focus:ring-primary h-4 w-4" type="checkbox" />
-                                    </th>
-                                    <th className="p-4 text-xs font-black text-[#4d4d99] uppercase tracking-widest">Complaint ID</th>
-                                    <th className="p-4 text-xs font-black text-[#4d4d99] uppercase tracking-widest">Date</th>
-                                    <th className="p-4 text-xs font-black text-[#4d4d99] uppercase tracking-widest">Customer Name</th>
-                                    <th className="p-4 text-xs font-black text-[#4d4d99] uppercase tracking-widest">Nature</th>
-                                    <th className="p-4 text-xs font-black text-[#4d4d99] uppercase tracking-widest">Team</th>
-                                    <th className="p-4 text-xs font-black text-[#4d4d99] uppercase tracking-widest">Status</th>
-                                    <th className="p-4 text-xs font-black text-[#4d4d99] uppercase tracking-widest text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-[#e7e7f3] dark:divide-[#2a2a4a]">
-                                {/* Row 1: Urgent/New */}
-                                <tr className="hover:bg-primary/5 transition-colors cursor-pointer group">
-                                    <td className="p-4 text-center">
-                                        <input className="rounded border-[#e7e7f3] text-primary focus:ring-primary h-4 w-4" type="checkbox" />
-                                    </td>
-                                    <td className="p-4 font-bold text-primary group-hover:underline">#CMP-8842</td>
-                                    <td className="p-4 text-sm text-[#4d4d99] dark:text-[#8a8ab5]">24/05/2024</td>
-                                    <td className="p-4 font-semibold text-slate-900 dark:text-white">Robert J. Sterling</td>
-                                    <td className="p-4 text-sm max-w-xs truncate text-slate-600 dark:text-slate-300">Critical server connectivity failure in North Wing</td>
-                                    <td className="p-4">
-                                        <span className="text-xs font-bold px-2 py-1 rounded bg-[#e7e7f3] dark:bg-[#2a2a4a] text-slate-600 dark:text-slate-300">TEAM ALPHA</span>
-                                    </td>
-                                    <td className="p-4">
-                                        <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-red-600 mr-1.5 animate-pulse"></span>
-                                            URGENT
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-right">
-                                        <button className="p-2 hover:bg-[#e7e7f3] dark:hover:bg-[#2a2a4a] rounded-lg transition-colors">
-                                            <span className="material-symbols-outlined text-xl text-slate-400 dark:text-slate-500">more_vert</span>
-                                        </button>
-                                    </td>
-                                </tr>
-                                {/* Row 2: Normal/Progress */}
-                                <tr className="hover:bg-primary/5 transition-colors cursor-pointer group">
-                                    <td className="p-4 text-center">
-                                        <input checked className="rounded border-[#e7e7f3] text-primary focus:ring-primary h-4 w-4" type="checkbox" />
-                                    </td>
-                                    <td className="p-4 font-bold text-primary group-hover:underline">#CMP-8839</td>
-                                    <td className="p-4 text-sm text-[#4d4d99] dark:text-[#8a8ab5]">23/05/2024</td>
-                                    <td className="p-4 font-semibold text-slate-900 dark:text-white">Sarah Jenkins</td>
-                                    <td className="p-4 text-sm max-w-xs truncate text-slate-600 dark:text-slate-300">Maintenance request for HVAC unit 4B</td>
-                                    <td className="p-4">
-                                        <span className="text-xs font-bold px-2 py-1 rounded bg-[#e7e7f3] dark:bg-[#2a2a4a] text-slate-600 dark:text-slate-300">TEAM BETA</span>
-                                    </td>
-                                    <td className="p-4">
-                                        <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-blue-600 mr-1.5 animate-pulse"></span>
-                                            IN PROGRESS
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-right">
-                                        <button className="p-2 hover:bg-[#e7e7f3] dark:hover:bg-[#2a2a4a] rounded-lg transition-colors">
-                                            <span className="material-symbols-outlined text-xl text-slate-400 dark:text-slate-500">more_vert</span>
-                                        </button>
-                                    </td>
-                                </tr>
-                                {/* Row 3: Resolved */}
-                                <tr className="hover:bg-primary/5 transition-colors cursor-pointer group">
-                                    <td className="p-4 text-center">
-                                        <input className="rounded border-[#e7e7f3] text-primary focus:ring-primary h-4 w-4" type="checkbox" />
-                                    </td>
-                                    <td className="p-4 font-bold text-primary group-hover:underline">#CMP-8831</td>
-                                    <td className="p-4 text-sm text-[#4d4d99] dark:text-[#8a8ab5]">22/05/2024</td>
-                                    <td className="p-4 font-semibold text-slate-900 dark:text-white">Lumina Global Corp</td>
-                                    <td className="p-4 text-sm max-w-xs truncate text-slate-600 dark:text-slate-300">Software license renewal assistance</td>
-                                    <td className="p-4">
-                                        <span className="text-xs font-bold px-2 py-1 rounded bg-[#e7e7f3] dark:bg-[#2a2a4a] text-slate-600 dark:text-slate-300">TEAM GAMMA</span>
-                                    </td>
-                                    <td className="p-4">
-                                        <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-                                            <span className="material-symbols-outlined text-xs mr-1">check_circle</span>
-                                            RESOLVED
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-right">
-                                        <button className="p-2 hover:bg-[#e7e7f3] dark:hover:bg-[#2a2a4a] rounded-lg transition-colors">
-                                            <span className="material-symbols-outlined text-xl text-slate-400 dark:text-slate-500">more_vert</span>
-                                        </button>
-                                    </td>
-                                </tr>
-                                {/* Row 4: High/New */}
-                                <tr className="hover:bg-primary/5 transition-colors cursor-pointer group">
-                                    <td className="p-4 text-center">
-                                        <input className="rounded border-[#e7e7f3] text-primary focus:ring-primary h-4 w-4" type="checkbox" />
-                                    </td>
-                                    <td className="p-4 font-bold text-primary group-hover:underline">#CMP-8825</td>
-                                    <td className="p-4 text-sm text-[#4d4d99] dark:text-[#8a8ab5]">21/05/2024</td>
-                                    <td className="p-4 font-semibold text-slate-900 dark:text-white">Marco Rossi</td>
-                                    <td className="p-4 text-sm max-w-xs truncate text-slate-600 dark:text-slate-300">Water leak reported in basement storage</td>
-                                    <td className="p-4">
-                                        <span className="text-xs font-bold px-2 py-1 rounded bg-[#e7e7f3] dark:bg-[#2a2a4a] text-slate-600 dark:text-slate-300">TEAM ALPHA</span>
-                                    </td>
-                                    <td className="p-4">
-                                        <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
-                                            HIGH
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-right">
-                                        <button className="p-2 hover:bg-[#e7e7f3] dark:hover:bg-[#2a2a4a] rounded-lg transition-colors">
-                                            <span className="material-symbols-outlined text-xl text-slate-400 dark:text-slate-500">more_vert</span>
-                                        </button>
-                                    </td>
-                                </tr>
-                                {/* Row 5 */}
-                                <tr className="hover:bg-primary/5 transition-colors cursor-pointer group">
-                                    <td className="p-4 text-center">
-                                        <input className="rounded border-[#e7e7f3] text-primary focus:ring-primary h-4 w-4" type="checkbox" />
-                                    </td>
-                                    <td className="p-4 font-bold text-primary group-hover:underline">#CMP-8810</td>
-                                    <td className="p-4 text-sm text-[#4d4d99] dark:text-[#8a8ab5]">20/05/2024</td>
-                                    <td className="p-4 font-semibold text-slate-900 dark:text-white">TechLink Solutions</td>
-                                    <td className="p-4 text-sm max-w-xs truncate text-slate-600 dark:text-slate-300">Faulty peripheral devices in reception</td>
-                                    <td className="p-4">
-                                        <span className="text-xs font-bold px-2 py-1 rounded bg-[#e7e7f3] dark:bg-[#2a2a4a] text-slate-600 dark:text-slate-300">TEAM DELTA</span>
-                                    </td>
-                                    <td className="p-4">
-                                        <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-[#e7e7f3] text-[#4d4d99] dark:bg-[#2a2a4a] dark:text-[#8a8ab5]">
-                                            NEW
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-right">
-                                        <button className="p-2 hover:bg-[#e7e7f3] dark:hover:bg-[#2a2a4a] rounded-lg transition-colors">
-                                            <span className="material-symbols-outlined text-xl text-slate-400 dark:text-slate-500">more_vert</span>
-                                        </button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    {/* Pagination Footer */}
-                    <div className="flex items-center justify-between p-4 bg-[#f8f8fc] dark:bg-[#111121] border-t border-[#e7e7f3] dark:border-[#2a2a4a] mt-auto">
-                        <div className="flex items-center gap-4">
-                            <p className="text-sm text-[#4d4d99] dark:text-[#8a8ab5]">Showing 1-10 of 1,240 results</p>
-                            <div className="hidden sm:flex items-center gap-2">
-                                <span className="text-sm text-[#4d4d99] dark:text-[#8a8ab5]">Rows per page:</span>
-                                <select className="text-sm bg-transparent border-none focus:ring-0 font-bold p-0 pr-6 text-[#0e0e1b] dark:text-white cursor-pointer">
-                                    <option>10</option>
-                                    <option>25</option>
-                                    <option>50</option>
-                                </select>
+                <div className="max-w-[1600px] mx-auto space-y-8">
+                    {/* Stats Overview */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+                            <div className="size-12 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600">
+                                <Clock className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Active Tickets</p>
+                                <p className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">{stats.open}</p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-1">
-                            <button className="w-9 h-9 flex items-center justify-center rounded-lg border border-[#e7e7f3] dark:border-[#2a2a4a] hover:bg-white dark:hover:bg-slate-800 disabled:opacity-30 text-[#4d4d99] dark:text-slate-400" disabled>
-                                <span className="material-symbols-outlined">chevron_left</span>
-                            </button>
-                            <button className="w-9 h-9 flex items-center justify-center rounded-lg bg-primary text-white font-bold text-sm shadow-md">1</button>
-                            <button className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white dark:hover:bg-slate-800 text-sm font-medium text-[#4d4d99] dark:text-slate-400">2</button>
-                            <button className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white dark:hover:bg-slate-800 text-sm font-medium text-[#4d4d99] dark:text-slate-400">3</button>
-                            <span className="px-2 text-[#4d4d99] dark:text-slate-500">...</span>
-                            <button className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white dark:hover:bg-slate-800 text-sm font-medium text-[#4d4d99] dark:text-slate-400">124</button>
-                            <button className="w-9 h-9 flex items-center justify-center rounded-lg border border-[#e7e7f3] dark:border-[#2a2a4a] hover:bg-white dark:hover:bg-slate-800 text-[#4d4d99] dark:text-slate-400">
-                                <span className="material-symbols-outlined">chevron_right</span>
-                            </button>
+                        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+                            <div className="size-12 rounded-xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center text-red-600">
+                                <AlertTriangle className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Urgent</p>
+                                <p className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">{stats.critical}</p>
+                            </div>
+                        </div>
+                        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+                            <div className="size-12 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center text-emerald-600">
+                                <CheckCircle2 className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Resolved Day</p>
+                                <p className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">{stats.resolvedToday}</p>
+                            </div>
+                        </div>
+                        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+                            <div className="size-12 rounded-xl bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-purple-600">
+                                <Clock className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Total Handled</p>
+                                <p className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">{stats.total}</p>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                {/* Stats Overview */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-8 mb-4">
-                    <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-[#e7e7f3] dark:border-[#2a2a4a] shadow-sm flex items-center gap-4">
-                        <div className="size-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-primary">
-                            <span className="material-symbols-outlined">description</span>
+                    {/* Content Area */}
+                    <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
+                        {/* Toolbar */}
+                        <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex flex-col lg:flex-row gap-4 justify-between items-center bg-slate-50/50 dark:bg-slate-900/50">
+                            <div className="flex bg-white dark:bg-slate-800 p-1 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 w-full lg:w-auto">
+                                <button className="px-4 py-2 rounded-lg text-xs font-bold bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm transition-all">All Complaints</button>
+                                <button className="px-4 py-2 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-900 dark:hover:text-white transition-all">Active Only</button>
+                            </div>
+
+                            <div className="flex items-center gap-3 w-full lg:w-auto">
+                                <div className="relative flex-1 lg:w-64">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                                    <input
+                                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none"
+                                        placeholder="Search complaints..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                    />
+                                </div>
+                                <button className="p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-500 hover:text-primary transition-colors">
+                                    <Download className="w-4 h-4" />
+                                </button>
+                            </div>
                         </div>
-                        <div>
-                            <p className="text-sm text-[#4d4d99] dark:text-[#8a8ab5] font-medium">Total Open</p>
-                            <p className="text-2xl font-black text-[#0e0e1b] dark:text-white">412</p>
+
+                        {/* Table */}
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="bg-slate-50 dark:bg-slate-800/50 text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                                        <th className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 w-12">
+                                            <input type="checkbox" className="rounded border-slate-300 text-primary focus:ring-primary" />
+                                        </th>
+                                        <th className="px-6 py-4 border-b border-slate-200 dark:border-slate-800">Ticket # & Date</th>
+                                        <th className="px-6 py-4 border-b border-slate-200 dark:border-slate-800">Customer</th>
+                                        <th className="px-6 py-4 border-b border-slate-200 dark:border-slate-800">Leak Type / Priority</th>
+                                        <th className="px-6 py-4 border-b border-slate-200 dark:border-slate-800">Address</th>
+                                        <th className="px-6 py-4 border-b border-slate-200 dark:border-slate-800">Status</th>
+                                        <th className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                    {filteredComplaints.map((complaint) => (
+                                        <tr key={complaint._id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group cursor-pointer" onClick={() => window.location.href = `/complaints/${complaint._id}`}>
+                                            <td className="px-6 py-4">
+                                                <input type="checkbox" className="rounded border-slate-300 text-primary focus:ring-primary" onClick={(e) => e.stopPropagation()} />
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors">{complaint.number}</span>
+                                                    <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                                                        <Calendar className="w-3 h-3" /> {format(new Date(complaint.createdAt), 'dd MMM, HH:mm', { locale: fr })}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="size-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-500">
+                                                        {complaint.firstName[0]}{complaint.lastName[0]}
+                                                    </div>
+                                                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{complaint.firstName} {complaint.lastName}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex flex-col gap-1">
+                                                    <span className="text-sm font-medium text-slate-900 dark:text-white truncate max-w-[200px]">{complaint.leakType}</span>
+                                                    <span className={`w-fit px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border ${getPriorityColor(complaint.priority)}`}>
+                                                        {complaint.priority || 'low'}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex flex-col">
+                                                    <span className="text-xs text-slate-500 font-medium truncate max-w-[180px]">{complaint.address}</span>
+                                                    <span className="text-[10px] text-slate-400">{complaint.phone}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border flex items-center gap-1.5 w-fit ${getStatusColor(complaint.status)}`}>
+                                                    <span className="relative flex h-1.5 w-1.5">
+                                                        <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${complaint.status === 'résolue' ? 'bg-emerald-400' : 'bg-current'}`}></span>
+                                                        <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${complaint.status === 'résolue' ? 'bg-emerald-500' : 'bg-current'}`}></span>
+                                                    </span>
+                                                    {complaint.status}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-500 transition-colors">
+                                                        <Eye className="w-4 h-4" />
+                                                    </button>
+                                                    <button className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-500 transition-colors">
+                                                        <MoreVertical className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {filteredComplaints.length === 0 && (
+                                        <tr>
+                                            <td colSpan={7} className="px-6 py-20 text-center">
+                                                <div className="flex flex-col items-center gap-2">
+                                                    <div className="size-12 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                                                        <Search className="w-6 h-6" />
+                                                    </div>
+                                                    <p className="text-sm font-bold text-slate-500">No complaints found</p>
+                                                    <p className="text-xs text-slate-400">Try adjusting your search or filters</p>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
                         </div>
-                    </div>
-                    <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-[#e7e7f3] dark:border-[#2a2a4a] shadow-sm flex items-center gap-4">
-                        <div className="size-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600">
-                            <span className="material-symbols-outlined">warning</span>
-                        </div>
-                        <div>
-                            <p className="text-sm text-[#4d4d99] dark:text-[#8a8ab5] font-medium">Critical Issues</p>
-                            <p className="text-2xl font-black text-[#0e0e1b] dark:text-white">28</p>
-                        </div>
-                    </div>
-                    <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-[#e7e7f3] dark:border-[#2a2a4a] shadow-sm flex items-center gap-4">
-                        <div className="size-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600">
-                            <span className="material-symbols-outlined">verified</span>
-                        </div>
-                        <div>
-                            <p className="text-sm text-[#4d4d99] dark:text-[#8a8ab5] font-medium">Resolved Today</p>
-                            <p className="text-2xl font-black text-[#0e0e1b] dark:text-white">84</p>
-                        </div>
-                    </div>
-                    <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-[#e7e7f3] dark:border-[#2a2a4a] shadow-sm flex items-center gap-4">
-                        <div className="size-12 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600">
-                            <span className="material-symbols-outlined">avg_time</span>
-                        </div>
-                        <div>
-                            <p className="text-sm text-[#4d4d99] dark:text-[#8a8ab5] font-medium">Avg Resolution</p>
-                            <p className="text-2xl font-black text-[#0e0e1b] dark:text-white">4.2h</p>
+
+                        {/* Pagination Overlay (Simplified) */}
+                        <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900/50">
+                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Showing {filteredComplaints.length} of {complaints.length}</span>
                         </div>
                     </div>
                 </div>

@@ -1,240 +1,284 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
-    Clock,
-    Navigation,
-    CheckCircle2,
-    Pause,
-    Play,
-    RefreshCcw,
-    MapPin,
-    Calendar,
+    Calendar as CalendarIcon,
+    ChevronLeft,
     ChevronRight,
-    AlertCircle,
-    PhoneCall,
-    Menu,
+    Filter,
+    Plus,
+    LayoutList,
+    CalendarDays,
+    MoreVertical,
+    Clock,
+    User,
+    Wrench,
+    Zap,
+    Droplet,
+    Flame,
+    GripVertical,
     Search,
     Bell,
-    Settings
+    Settings,
+    Briefcase
 } from 'lucide-react';
-import Link from 'next/link';
 
-// Mock Sidebar Component (Inline for this page to function standalone)
-const Sidebar = () => (
-    <aside className="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 hidden md:flex flex-col z-20">
-        <div className="p-6 flex items-center gap-3">
-            <div className="size-10 bg-primary rounded-lg flex items-center justify-center text-white">
-                <span className="material-symbols-outlined text-xl">engineering</span>
-            </div>
-            <div>
-                <h1 className="font-bold text-sm leading-tight">TechPortal</h1>
-                <p className="text-xs text-slate-500">Field Operations</p>
-            </div>
-        </div>
-        <nav className="flex-1 px-4 space-y-2 mt-4">
-            <Link href="/dashboard" className="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
-                <span className="material-symbols-outlined text-lg">dashboard</span>
-                <span className="text-sm font-medium">Dashboard</span>
-            </Link>
-            <Link href="/schedule" className="flex items-center gap-3 px-3 py-2 bg-primary/10 text-primary rounded-lg transition-colors">
-                <span className="material-symbols-outlined text-lg">calendar_month</span>
-                <span className="text-sm font-medium">Agenda</span>
-            </Link>
-            <Link href="/interventions" className="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
-                <span className="material-symbols-outlined text-lg">build</span>
-                <span className="text-sm font-medium">Interventions</span>
-            </Link>
-        </nav>
-        <div className="p-4 border-t border-slate-200 dark:border-slate-800">
-            <div className="flex items-center gap-3 px-2">
-                <div className="size-8 rounded-full bg-slate-200 overflow-hidden">
-                    <img className="w-full h-full object-cover" src="https://randomuser.me/api/portraits/men/32.jpg" alt="User" />
-                </div>
-                <div>
-                    <p className="text-sm font-bold">John Doe</p>
-                    <p className="text-[10px] text-slate-500">Senior Tech</p>
-                </div>
-            </div>
-        </div>
-    </aside>
-);
+export default function MaintenanceSchedulePage() {
+    const [viewMode, setViewMode] = useState<'calendar' | 'timeline'>('calendar');
+    const [currentDate, setCurrentDate] = useState(new Date());
 
-// Mock Header Component
-const Header = ({ breadcrumbs }: { breadcrumbs: { label: string; href: string }[] }) => (
-    <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 md:px-8">
-        <div className="flex items-center gap-2 text-sm text-slate-500">
-            {breadcrumbs.map((crumb, index) => (
-                <React.Fragment key={index}>
-                    {index > 0 && <ChevronRight size={14} />}
-                    <Link href={crumb.href} className={index === breadcrumbs.length - 1 ? 'text-primary font-bold' : 'hover:text-primary transition-colors'}>
-                        {crumb.label}
-                    </Link>
-                </React.Fragment>
-            ))}
-        </div>
-        <div className="flex items-center gap-4">
-            <button className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full"><Search size={20} /></button>
-            <button className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full"><Bell size={20} /></button>
-        </div>
-    </header>
-);
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const currentMonth = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
 
-const TechnicianDashboard = () => {
-    // Mock data for the technician
-    const activeTask = {
-        id: 'JOB#4492',
-        title: 'Global Logistics Center',
-        type: 'HVAC REPAIR',
-        location: '123 Industrial Way, North Wing, Loading Dock 4',
-        timer: '00:45:12',
-        priority: 'CRITICAL',
-        description: 'Bruit de grincement inhabituel dans l\'unité B-12 et panne complète de refroidissement dans la salle des serveurs. Nécessite une inspection immédiate du compresseur.'
-    };
-
-    const nextTasks = [
-        { id: 'JOB#4495', title: 'Riverside Apartment Complex', address: '442 Water St. • Dysfonctionnement Interphone', time: '14:30 - 16:00' },
-        { id: 'JOB#4501', title: 'Metro Bank HQ', address: '88 Financial Plaza • Maintenance de Routine', time: '16:30 - 17:30' }
+    // Mock Schedule Data regarding Maintenance
+    const scheduleItems = [
+        { id: 1, title: 'Main Pump Service', type: 'Maintenance', startTime: '09:00', endTime: '11:30', assignee: 'John Doe', color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800' },
+        { id: 2, title: 'Grid Inspection', type: 'Inspection', startTime: '13:00', endTime: '15:00', assignee: 'Jane Smith', color: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' },
+        { id: 3, title: 'Valve Replacement', type: 'Repair', startTime: '10:00', endTime: '12:00', assignee: 'Mike Ross', color: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800' },
     ];
 
     return (
-        <div className="flex h-screen bg-slate-50 dark:bg-slate-950 font-sans">
-            <Sidebar />
-
-            <div className="flex-1 flex flex-col h-screen overflow-hidden">
-                <Header
-                    breadcrumbs={[
-                        { label: 'Technicien', href: '#' },
-                        { label: 'Agenda du Jour', href: '/schedule' }
-                    ]}
-                />
-
-                <main className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8">
-                    {/* Header Section */}
-                    <div className="flex justify-between items-end">
-                        <div>
-                            <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-1 block">Technician Dashboard</span>
-                            <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">Agenda du jour</h2>
-                            <p className="text-slate-500 text-sm font-medium mt-1 flex items-center gap-2">
-                                <Calendar size={14} /> Vendredi, 25 Oct • <span className="text-primary font-bold">4 interventions en attente</span>
-                            </p>
-                        </div>
-                        <button className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl text-slate-500 hover:text-primary transition-all shadow-sm flex items-center gap-2 font-bold text-sm">
-                            <RefreshCcw size={16} /> Rafraîchir
+        <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display min-h-screen flex flex-col">
+            {/* Header */}
+            <header className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-background-dark/50 flex items-center justify-between px-6 sticky top-0 z-40 backdrop-blur-md">
+                <div className="flex items-center gap-4">
+                    <div className="bg-primary/10 p-2 rounded-lg">
+                        <CalendarIcon className="text-primary w-6 h-6" />
+                    </div>
+                    <h1 className="font-bold text-xl tracking-tight">Maintenance Schedule</h1>
+                    <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-1 ml-4">
+                        <button
+                            onClick={() => setViewMode('calendar')}
+                            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${viewMode === 'calendar' ? 'bg-white dark:bg-slate-700 shadow-sm text-primary' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
+                        >
+                            Month
+                        </button>
+                        <button
+                            onClick={() => setViewMode('timeline')}
+                            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${viewMode === 'timeline' ? 'bg-white dark:bg-slate-700 shadow-sm text-primary' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
+                        >
+                            Timeline
                         </button>
                     </div>
-
-                    {/* Active Task Section */}
-                    <section className="space-y-4">
-                        <div className="flex items-center gap-2">
-                            <div className="size-2 rounded-full bg-red-500 animate-pulse" />
-                            <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-widest text-xs">Tâche Active</h3>
-                            <span className="ml-auto bg-red-100 text-red-600 text-[10px] font-black px-2 py-0.5 rounded-full border border-red-200 uppercase tracking-widest">Priority: {activeTask.priority}</span>
-                        </div>
-
-                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] shadow-xl shadow-slate-200/50 dark:shadow-none overflow-hidden flex flex-col lg:flex-row">
-                            {/* Map Side */}
-                            <div className="lg:w-1/3 h-64 lg:h-auto bg-slate-100 dark:bg-slate-800 relative group overflow-hidden">
-                                <div className="absolute inset-0 bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
-                                    <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Map Simulation</span>
-                                </div>
-                                <div className="absolute inset-0 bg-primary/5 group-hover:bg-transparent transition-colors" />
-
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                    <div className="relative">
-                                        <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping" />
-                                        <MapPin size={40} className="text-primary relative z-10" fill="currentColor" strokeWidth={1} />
-                                    </div>
-                                </div>
-
-                                <div className="absolute bottom-6 left-6 right-6">
-                                    <button className="w-full bg-primary text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-2xl shadow-primary/40 hover:scale-105 transition-transform">
-                                        <Navigation size={18} fill="currentColor" /> Ouvrir GPS
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Info Side */}
-                            <div className="lg:w-2/3 p-8 lg:p-10 space-y-8 relative">
-                                <div className="flex justify-between items-start">
-                                    <div className="space-y-2">
-                                        <span className="bg-primary/10 text-primary text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
-                                            {activeTask.id} • {activeTask.type}
-                                        </span>
-                                        <h4 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{activeTask.title}</h4>
-                                        <p className="text-slate-500 font-medium flex items-center gap-2 text-sm">
-                                            <MapPin size={16} className="text-primary" /> {activeTask.location}
-                                        </p>
-                                    </div>
-                                    <div className="text-right">
-                                        <div className="flex items-center gap-2 text-primary">
-                                            <Clock size={20} strokeWidth={3} />
-                                            <span className="text-2xl font-black tracking-tighter tabular-nums">{activeTask.timer}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border-l-[6px] border-primary space-y-2">
-                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70">Description de la plainte</p>
-                                    <p className="text-sm font-medium text-slate-600 dark:text-slate-400 leading-relaxed">
-                                        {activeTask.description}
-                                    </p>
-                                </div>
-
-                                <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                                    <button className="flex-[2] bg-emerald-500 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 transition-all flex items-center justify-center gap-2">
-                                        <CheckCircle2 size={18} strokeWidth={3} /> Marquer comme résolu
-                                    </button>
-                                    <button className="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all flex items-center justify-center gap-2">
-                                        <Pause size={18} strokeWidth={3} /> Pause
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
-                    {/* Next Tasks */}
-                    <section className="space-y-4">
-                        <div className="flex items-center gap-2">
-                            <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-widest text-xs">Prochaines Interventions</h3>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {nextTasks.map((task, idx) => (
-                                <div key={idx} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-[2rem] shadow-sm hover:shadow-xl transition-all group">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <span className="text-[10px] font-black bg-slate-50 dark:bg-slate-800 text-slate-400 px-2 py-1 rounded-lg uppercase tracking-widest">{task.id}</span>
-                                        <span className="text-[11px] font-black text-primary bg-primary/5 px-2 py-1 rounded-lg tabular-nums tracking-tighter">{task.time}</span>
-                                    </div>
-                                    <h5 className="text-lg font-black text-slate-900 dark:text-white tracking-tight group-hover:text-primary transition-colors">{task.title}</h5>
-                                    <p className="text-xs text-slate-500 font-medium mb-6 leading-relaxed">{task.address}</p>
-
-                                    <div className="flex gap-2">
-                                        <button className="flex-1 bg-primary text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:scale-[1.02] transition-transform">
-                                            Démarrer Travail
-                                        </button>
-                                        <button className="p-3 bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-xl hover:text-primary">
-                                            <PhoneCall size={16} />
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </section>
-                </main>
-
-                {/* Floating Contact Support */}
-                <div className="fixed bottom-6 right-6 flex flex-col gap-3">
-                    <button className="size-14 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full shadow-2xl flex items-center justify-center text-slate-400 hover:text-primary transition-all group">
-                        <AlertCircle size={24} className="group-hover:scale-110 transition-transform" />
+                </div>
+                <div className="flex items-center gap-4">
+                    <button className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500">
+                        <Search className="w-5 h-5" />
                     </button>
-                    <button className="size-14 bg-primary text-white rounded-full shadow-2xl shadow-primary/40 flex items-center justify-center hover:scale-110 transition-all">
-                        <PhoneCall size={24} fill="currentColor" />
+                    <button className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500">
+                        <Settings className="w-5 h-5" />
+                    </button>
+                    <button className="bg-primary text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-primary/90 transition-colors shadow-sm text-sm font-bold">
+                        <Plus className="w-4 h-4" />
+                        Schedule Job
                     </button>
                 </div>
+            </header>
+
+            <div className="flex flex-1 overflow-hidden">
+                {/* Sidebar: Availability & Resources */}
+                <aside className="w-80 bg-white dark:bg-background-dark border-r border-slate-200 dark:border-slate-800 flex flex-col overflow-y-auto hidden lg:flex">
+                    <div className="p-6">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Team Availability</h3>
+                            <button className="text-[10px] font-bold text-primary hover:underline">View All</button>
+                        </div>
+
+                        <div className="space-y-6">
+                            {/* Team Member */}
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs font-bold">JD</div>
+                                        <div>
+                                            <p className="text-xs font-bold text-slate-900 dark:text-white">John Doe</p>
+                                            <p className="text-[10px] text-slate-500">Master Electrician</p>
+                                        </div>
+                                    </div>
+                                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                                </div>
+                                <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex">
+                                    <div className="w-[40%] bg-emerald-400 h-full"></div>
+                                    <div className="w-[30%] bg-slate-200 h-full"></div>
+                                    <div className="w-[30%] bg-emerald-400 h-full"></div>
+                                </div>
+                                <div className="flex justify-between mt-1 text-[10px] text-slate-400">
+                                    <span>08:00</span>
+                                    <span>12:00</span>
+                                    <span>16:00</span>
+                                </div>
+                            </div>
+
+                            {/* Team Member */}
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs font-bold">SM</div>
+                                        <div>
+                                            <p className="text-xs font-bold text-slate-900 dark:text-white">Sarah Miller</p>
+                                            <p className="text-[10px] text-slate-500">Safety Inspector</p>
+                                        </div>
+                                    </div>
+                                    <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                                </div>
+                                <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex">
+                                    <div className="w-[60%] bg-amber-400 h-full"></div>
+                                    <div className="w-[10%] bg-slate-200 h-full"></div>
+                                    <div className="w-[30%] bg-amber-400 h-full"></div>
+                                </div>
+                                <div className="flex justify-between mt-1 text-[10px] text-slate-400">
+                                    <span>08:00</span>
+                                    <span>Full Booked</span>
+                                    <span>16:00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="p-6 border-t border-slate-200 dark:border-slate-800">
+                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Upcoming Maintenance</h3>
+                        <div className="space-y-4">
+                            <div className="p-3 rounded-lg bg-orange-50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-900/20">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Flame className="w-4 h-4 text-orange-500" />
+                                    <span className="text-xs font-bold text-orange-700 dark:text-orange-400">Boiler Service</span>
+                                </div>
+                                <p className="text-[10px] text-slate-500 mb-2">Sector 7 Central Heating Unit needs annual descaling.</p>
+                                <p className="text-[10px] font-bold text-slate-400">Due: Tomorrow, 10:00 AM</p>
+                            </div>
+                            <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/20">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Droplet className="w-4 h-4 text-blue-500" />
+                                    <span className="text-xs font-bold text-blue-700 dark:text-blue-400">Filter Replacement</span>
+                                </div>
+                                <p className="text-[10px] text-slate-500 mb-2">Water filtration plant B - pre-filters change.</p>
+                                <p className="text-[10px] font-bold text-slate-400">Due: Oct 28, 08:00 AM</p>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+
+                {/* Main Schedule Area */}
+                <main className="flex-1 flex flex-col bg-slate-50/50 dark:bg-slate-900/20 overflow-hidden">
+                    {/* Controls Bar */}
+                    <div className="h-14 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 bg-white dark:bg-background-dark">
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
+                                <button className="p-1 hover:bg-white dark:hover:bg-slate-700 rounded shadow-sm transition-all"><ChevronLeft className="w-4 h-4 text-slate-500" /></button>
+                                <button className="p-1 hover:bg-white dark:hover:bg-slate-700 rounded shadow-sm transition-all"><ChevronRight className="w-4 h-4 text-slate-500" /></button>
+                            </div>
+                            <span className="font-bold text-slate-700 dark:text-slate-200">{currentMonth}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button className="flex items-center gap-2 px-3 py-1.5 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-bold bg-white dark:bg-slate-900 text-slate-500 hover:text-primary transition-colors">
+                                <Filter className="w-3 h-3" />
+                                Filter
+                            </button>
+                            <button className="flex items-center gap-2 px-3 py-1.5 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-bold bg-white dark:bg-slate-900 text-slate-500 hover:text-primary transition-colors">
+                                <LayoutList className="w-3 h-3" />
+                                Density
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Content View */}
+                    <div className="flex-1 overflow-y-auto p-6">
+                        {viewMode === 'calendar' ? (
+                            <div className="grid grid-cols-7 gap-px bg-slate-200 dark:bg-slate-800 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm">
+                                {/* Weekday Headers */}
+                                {days.map(day => (
+                                    <div key={day} className="bg-slate-50 dark:bg-slate-900 p-2 text-center text-xs font-bold text-slate-400 uppercase tracking-widest">{day}</div>
+                                ))}
+
+                                {/* Calendar Days (Mock grid for October) */}
+                                {Array.from({ length: 35 }).map((_, idx) => {
+                                    const dayNum = idx - 2; // Offset to start calendar correctly
+                                    const isToday = dayNum === 25; // Mock Today
+                                    return (
+                                        <div key={idx} className={`min-h-[120px] bg-white dark:bg-slate-900 p-2 relative group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${dayNum <= 0 ? 'opacity-30 pointer-events-none' : ''}`}>
+                                            {dayNum > 0 && (
+                                                <>
+                                                    <span className={`text-xs font-bold ${isToday ? 'bg-primary text-white w-6 h-6 flex items-center justify-center rounded-full' : 'text-slate-500'}`}>{dayNum}</span>
+
+                                                    {/* Mock Events */}
+                                                    {dayNum === 25 && (
+                                                        <div className="mt-2 space-y-1">
+                                                            <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-[10px] font-bold px-2 py-1 rounded truncate border border-blue-200 dark:border-blue-800 cursor-pointer hover:brightness-95">
+                                                                09:00 - Pump Service
+                                                            </div>
+                                                            <div className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold px-2 py-1 rounded truncate border border-emerald-200 dark:border-emerald-800 cursor-pointer hover:brightness-95">
+                                                                13:00 - Grid Check
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    {dayNum === 26 && (
+                                                        <div className="mt-2 space-y-1">
+                                                            <div className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[10px] font-bold px-2 py-1 rounded truncate border border-amber-200 dark:border-amber-800 cursor-pointer hover:brightness-95">
+                                                                All Day - Valve Replace
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+                                {/* Timeline Header */}
+                                <div className="flex border-b border-slate-200 dark:border-slate-800">
+                                    <div className="w-48 p-4 text-xs font-bold text-slate-400 uppercase tracking-widest border-r border-slate-200 dark:border-slate-800 shrink-0">Resource</div>
+                                    <div className="flex-1 flex">
+                                        {Array.from({ length: 12 }).map((_, i) => (
+                                            <div key={i} className="flex-1 p-4 text-center text-xs font-bold text-slate-400 border-r border-slate-100 dark:border-slate-800/50">
+                                                {8 + i}:00
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Timeline Rows */}
+                                <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                                    {['John Doe', 'Jane Smith', 'Mike Ross'].map((resource, idx) => (
+                                        <div key={idx} className="flex group hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                                            <div className="w-48 p-4 border-r border-slate-200 dark:border-slate-800 shrink-0 flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs font-bold">{resource.split(' ').map(n => n[0]).join('')}</div>
+                                                <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{resource}</span>
+                                            </div>
+                                            <div className="flex-1 relative">
+                                                {/* Grid Lines */}
+                                                <div className="absolute inset-0 flex pointer-events-none">
+                                                    {Array.from({ length: 12 }).map((_, i) => (
+                                                        <div key={i} className="flex-1 border-r border-slate-50 dark:border-slate-800/30"></div>
+                                                    ))}
+                                                </div>
+
+                                                {/* Task Block Mock */}
+                                                {idx === 0 && (
+                                                    <div className="absolute top-2 bottom-2 left-[10%] w-[20%] bg-blue-100 dark:bg-blue-900/40 border border-blue-200 dark:border-blue-800 rounded-md flex items-center px-2 cursor-pointer hover:shadow-md">
+                                                        <span className="text-[10px] font-bold text-blue-700 dark:text-blue-300 truncate">Main Pump Service</span>
+                                                    </div>
+                                                )}
+                                                {idx === 1 && (
+                                                    <div className="absolute top-2 bottom-2 left-[45%] w-[15%] bg-emerald-100 dark:bg-emerald-900/40 border border-emerald-200 dark:border-emerald-800 rounded-md flex items-center px-2 cursor-pointer hover:shadow-md">
+                                                        <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 truncate">Grid Inspection</span>
+                                                    </div>
+                                                )}
+                                                {idx === 2 && (
+                                                    <div className="absolute top-2 bottom-2 left-[20%] w-[33%] bg-amber-100 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-800 rounded-md flex items-center px-2 cursor-pointer hover:shadow-md">
+                                                        <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 truncate">Valve Replacement</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </main>
             </div>
         </div>
     );
-};
-
-export default TechnicianDashboard;
+}

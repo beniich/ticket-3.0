@@ -1,332 +1,280 @@
 'use client';
 
 import React from 'react';
+import {
+    DollarSign,
+    ArrowUpRight,
+    ArrowDownRight,
+    Download,
+    Filter,
+    TrendingUp,
+    CreditCard,
+    Briefcase,
+    PieChart,
+    ChevronLeft,
+    ChevronRight,
+    MoreHorizontal,
+    Search,
+    Eye,
+    Receipt,
+    Wallet,
+    Calendar,
+    ArrowRight
+} from 'lucide-react';
+
+import { useFinance, FinancialRecord } from '@/hooks/useFinance';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 export default function CostTrackingPage() {
+    const { records, stats, loading, updateStatus } = useFinance();
+
+    const getStatusStyle = (status: string) => {
+        switch (status) {
+            case 'paid': return 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/30';
+            case 'pending': return 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/30';
+            case 'approved': return 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-900/30';
+            case 'cancelled': return 'bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30';
+            default: return 'bg-slate-50 text-slate-600 border-slate-100 dark:bg-slate-900/50 dark:text-slate-400 dark:border-slate-800';
+        }
+    };
+
+    const getTotalByType = (type: 'expense' | 'revenue') => {
+        return stats?.stats?.find((s: any) => s._id === type)?.total || 0;
+    };
+
     return (
-        <div className="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen">
-            <div className="flex h-full grow flex-col">
-                {/* Top Navigation */}
-                <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 md:px-10 py-3 sticky top-0 z-50">
-                    <div className="flex items-center gap-8">
-                        <div className="flex items-center gap-3 text-primary">
-                            <span className="material-symbols-outlined text-3xl">payments</span>
-                            <h2 className="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">CostTrack Pro</h2>
-                        </div>
-                        <nav className="hidden md:flex items-center gap-6">
-                            <a className="text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-white text-sm font-medium transition-colors" href="#">Dashboard</a>
-                            <a className="text-primary text-sm font-semibold border-b-2 border-primary py-1" href="#">Interventions</a>
-                            <a className="text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-white text-sm font-medium transition-colors" href="#">Inventory</a>
-                            <a className="text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-white text-sm font-medium transition-colors" href="#">Financials</a>
-                        </nav>
+        <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen font-display flex flex-col">
+            {/* Header */}
+            <header className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-background-dark/50 flex items-center justify-between px-6 sticky top-0 z-40 backdrop-blur-md">
+                <div className="flex items-center gap-4">
+                    <div className="bg-primary/10 p-2 rounded-lg">
+                        <Wallet className="text-primary w-6 h-6" />
                     </div>
-                    <div className="flex flex-1 justify-end gap-4 items-center">
-                        <div className="relative hidden sm:block w-full max-w-xs">
-                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">search</span>
-                            <input className="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-lg py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/50 text-slate-900 dark:text-white placeholder:text-slate-400 transition-all outline-none" placeholder="Search tickets or invoices..." type="text" />
-                        </div>
-                        <button className="hidden lg:flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-sm font-bold transition-all shadow-sm">
-                            <span className="material-symbols-outlined text-sm">receipt_long</span>
-                            <span>Bulk Invoice</span>
-                        </button>
-                        <div className="h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden border border-slate-300 dark:border-slate-600">
-                            <img alt="User Profile" src="https://randomuser.me/api/portraits/men/85.jpg" />
-                        </div>
+                    <div>
+                        <h1 className="font-bold text-xl tracking-tight">Finance Center</h1>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Cost Tracking & Invoicing</p>
                     </div>
-                </header>
-                <main className="max-w-[1280px] mx-auto w-full p-4 md:p-8 space-y-8">
-                    {/* Header Section */}
-                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-                        <div className="space-y-1">
-                            <h1 className="text-slate-900 dark:text-white text-3xl font-black tracking-tight">Intervention Cost Tracking</h1>
-                            <p className="text-slate-500 dark:text-slate-400 text-base">Detailed overview of material and labor expenses for all maintenance tickets.</p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors">
-                                <span className="material-symbols-outlined text-lg">calendar_month</span>
-                                <span>Last 30 Days</span>
-                            </button>
-                            <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 transition-colors">
-                                <span className="material-symbols-outlined text-lg">download</span>
-                                <span>Export CSV</span>
-                            </button>
-                        </div>
+                </div>
+                <div className="flex items-center gap-3">
+                    <div className="relative group hidden lg:block">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                        <input
+                            className="w-64 pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-lg text-xs font-medium focus:ring-2 focus:ring-primary/20 transition-all focus:w-80"
+                            placeholder="Search invoices, tickets..."
+                            type="text"
+                        />
                     </div>
-                    {/* KPI Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                            <div className="flex items-center justify-between mb-2">
-                                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Total Cost</p>
-                                <span className="material-symbols-outlined text-primary">account_balance_wallet</span>
+                    <button className="bg-primary text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-primary/90 transition-all shadow-sm text-sm font-bold">
+                        <Receipt className="w-4 h-4" />
+                        Bulk Invoice
+                    </button>
+                    <div className="size-8 rounded-full bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=100&h=100&fit=crop" alt="User" />
+                    </div>
+                </div>
+            </header>
+
+            <main className="flex-1 p-6 md:p-8 overflow-y-auto">
+                <div className="max-w-[1600px] mx-auto space-y-8">
+                    {/* Stats Overview */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm group hover:shadow-md transition-shadow">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-xl"><DollarSign size={20} /></div>
+                                <span className="flex items-center gap-1 text-emerald-500 font-bold text-xs"><ArrowUpRight size={14} /> 12.5%</span>
                             </div>
-                            <p className="text-slate-900 dark:text-white text-2xl font-bold tracking-tight">$45,200.00</p>
-                            <div className="mt-2 flex items-center gap-1 text-emerald-600 dark:text-emerald-400 text-sm font-semibold">
-                                <span className="material-symbols-outlined text-sm">trending_up</span>
-                                <span>+12.5%</span>
-                                <span className="text-slate-400 dark:text-slate-500 font-normal ml-1">vs last month</span>
-                            </div>
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Dépenses Totales</p>
+                            <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">
+                                {getTotalByType('expense').toLocaleString()} MAD
+                            </p>
                         </div>
-                        <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                            <div className="flex items-center justify-between mb-2">
-                                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Material Expenses</p>
-                                <span className="material-symbols-outlined text-slate-400">inventory_2</span>
+                        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm group hover:shadow-md transition-shadow">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="p-3 bg-purple-50 dark:bg-purple-900/20 text-purple-600 rounded-xl"><Briefcase size={20} /></div>
+                                <span className="flex items-center gap-1 text-rose-500 font-bold text-xs"><ArrowDownRight size={14} /> 2.4%</span>
                             </div>
-                            <p className="text-slate-900 dark:text-white text-2xl font-bold tracking-tight">$28,450.00</p>
-                            <div className="mt-2 flex items-center gap-1 text-rose-600 dark:text-rose-400 text-sm font-semibold">
-                                <span className="material-symbols-outlined text-sm">trending_down</span>
-                                <span>-2.4%</span>
-                                <span className="text-slate-400 dark:text-slate-500 font-normal ml-1">vs last month</span>
-                            </div>
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Matériel</p>
+                            <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">
+                                {(stats?.categoryStats?.find((s: any) => s._id === 'parts')?.total || 0).toLocaleString()} MAD
+                            </p>
                         </div>
-                        <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                            <div className="flex items-center justify-between mb-2">
-                                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Labor Expenses</p>
-                                <span className="material-symbols-outlined text-slate-400">engineering</span>
+                        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm group hover:shadow-md transition-shadow">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 rounded-xl"><CreditCard size={20} /></div>
+                                <span className="flex items-center gap-1 text-emerald-500 font-bold text-xs"><ArrowUpRight size={14} /> 18.1%</span>
                             </div>
-                            <p className="text-slate-900 dark:text-white text-2xl font-bold tracking-tight">$16,750.00</p>
-                            <div className="mt-2 flex items-center gap-1 text-emerald-600 dark:text-emerald-400 text-sm font-semibold">
-                                <span className="material-symbols-outlined text-sm">trending_up</span>
-                                <span>+18.1%</span>
-                                <span className="text-slate-400 dark:text-slate-500 font-normal ml-1">vs last month</span>
-                            </div>
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Main d'œuvre</p>
+                            <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">
+                                {(stats?.categoryStats?.find((s: any) => s._id === 'labor')?.total || 0).toLocaleString()} MAD
+                            </p>
                         </div>
-                        <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                            <div className="flex items-center justify-between mb-2">
-                                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Pending Invoicing</p>
-                                <span className="material-symbols-outlined text-slate-400">pending_actions</span>
+                        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm group hover:shadow-md transition-shadow">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="p-3 bg-orange-50 dark:bg-orange-900/20 text-orange-600 rounded-xl"><PieChart size={20} /></div>
                             </div>
-                            <p className="text-slate-900 dark:text-white text-2xl font-bold tracking-tight">$12,300.00</p>
-                            <div className="mt-2 flex items-center gap-1 text-emerald-600 dark:text-emerald-400 text-sm font-semibold">
-                                <span className="material-symbols-outlined text-sm">trending_up</span>
-                                <span>+5.2%</span>
-                                <span className="text-slate-400 dark:text-slate-500 font-normal ml-1">vs last month</span>
-                            </div>
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Revenus</p>
+                            <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">
+                                {getTotalByType('revenue').toLocaleString()} MAD
+                            </p>
                         </div>
                     </div>
-                    {/* Charts Section */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Monthly Spending Chart */}
-                        <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                            <div className="flex items-center justify-between mb-6">
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        {/* Operational Spending Chart (Mock) */}
+                        <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                            <div className="flex items-center justify-between mb-8">
                                 <div>
-                                    <h3 className="text-slate-900 dark:text-white font-bold text-lg">Operational Spending</h3>
-                                    <p className="text-slate-500 dark:text-slate-400 text-sm">Monthly breakdown of intervention costs</p>
+                                    <h2 className="text-xl font-black text-slate-900 dark:text-white">Operational Spending</h2>
+                                    <p className="text-sm text-slate-500">Monthly breakdown of intervention costs</p>
                                 </div>
-                                <div className="flex gap-2">
-                                    <div className="flex items-center gap-1">
-                                        <span className="w-3 h-3 rounded-full bg-primary"></span>
-                                        <span className="text-xs text-slate-500">Actual</span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        <span className="w-3 h-3 rounded-full bg-slate-200 dark:bg-slate-700"></span>
-                                        <span className="text-xs text-slate-500">Forecast</span>
-                                    </div>
+                                <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                                    <button className="px-3 py-1 text-xs font-bold bg-white dark:bg-slate-700 shadow-sm rounded-md">Actual</button>
+                                    <button className="px-3 py-1 text-xs font-bold text-slate-500">Forecast</button>
                                 </div>
                             </div>
-                            <div className="grid grid-cols-6 items-end gap-3 h-48 px-2">
-                                <div className="space-y-2 group flex flex-col justify-end h-full">
-                                    <div className="bg-primary/20 hover:bg-primary transition-colors rounded-t-md h-[40%]" title="$18k"></div>
-                                    <p className="text-center text-xs font-bold text-slate-400">Jan</p>
-                                </div>
-                                <div className="space-y-2 group flex flex-col justify-end h-full">
-                                    <div className="bg-primary/20 hover:bg-primary transition-colors rounded-t-md h-[65%]" title="$29k"></div>
-                                    <p className="text-center text-xs font-bold text-slate-400">Feb</p>
-                                </div>
-                                <div className="space-y-2 group flex flex-col justify-end h-full">
-                                    <div className="bg-primary/20 hover:bg-primary transition-colors rounded-t-md h-[55%]" title="$25k"></div>
-                                    <p className="text-center text-xs font-bold text-slate-400">Mar</p>
-                                </div>
-                                <div className="space-y-2 group flex flex-col justify-end h-full">
-                                    <div className="bg-primary/20 hover:bg-primary transition-colors rounded-t-md h-[85%]" title="$38k"></div>
-                                    <p className="text-center text-xs font-bold text-slate-400">Apr</p>
-                                </div>
-                                <div className="space-y-2 group flex flex-col justify-end h-full">
-                                    <div className="bg-primary hover:bg-primary/90 transition-colors rounded-t-md h-[95%]" title="$45k"></div>
-                                    <p className="text-center text-xs font-bold text-slate-900 dark:text-white">May</p>
-                                </div>
-                                <div className="space-y-2 group flex flex-col justify-end h-full">
-                                    <div className="bg-slate-200 dark:bg-slate-800 rounded-t-md h-[70%]" title="$32k (Est)"></div>
-                                    <p className="text-center text-xs font-bold text-slate-400">Jun</p>
-                                </div>
+                            <div className="h-64 flex items-end justify-between px-4 pb-8 border-b border-slate-100 dark:border-slate-800/50">
+                                {/* Bar Chart Implementation */}
+                                {[40, 65, 55, 85, 95, 70].map((h, i) => (
+                                    <div key={i} className="w-12 group relative flex flex-col items-center">
+                                        <div
+                                            className="w-full bg-primary/20 group-hover:bg-primary transition-all duration-500 rounded-t-lg shadow-[0_0_20px_rgba(36,36,235,0.1)] group-hover:shadow-[0_0_20px_rgba(36,36,235,0.3)]"
+                                            style={{ height: `${h}%` }}
+                                        ></div>
+                                        <span className="absolute -top-8 text-[10px] font-black text-primary opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">${Math.floor(Math.random() * 20 + 20)}k</span>
+                                        <span className="mt-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">{['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'][i]}</span>
+                                    </div>
+                                ))}
                             </div>
                         </div>
-                        {/* Material vs Labor Trend */}
-                        <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                            <div className="flex items-center justify-between mb-6">
+
+                        {/* Material vs Labor Efficiency (Mock) */}
+                        <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col">
+                            <div className="flex items-center justify-between mb-8">
                                 <div>
-                                    <h3 className="text-slate-900 dark:text-white font-bold text-lg">Material vs. Labor</h3>
-                                    <p className="text-slate-500 dark:text-slate-400 text-sm">Year-to-date efficiency trend</p>
+                                    <h2 className="text-xl font-black text-slate-900 dark:text-white">Material vs. Labor</h2>
+                                    <p className="text-sm text-slate-500">Year-to-date efficiency trend</p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-slate-900 dark:text-white font-bold">$165,000 Total</p>
-                                    <p className="text-emerald-500 text-xs font-medium">Efficiency +15%</p>
+                                    <p className="text-lg font-black text-slate-900 dark:text-white">$165k Total</p>
+                                    <p className="text-emerald-500 text-xs font-bold flex items-center justify-end gap-1"><TrendingUp size={12} /> +15% Efficiency</p>
                                 </div>
                             </div>
-                            <div className="relative h-48 w-full">
-                                <svg className="w-full h-full preserve-3d" viewBox="0 0 500 150" preserveAspectRatio="none">
-                                    <path d="M0,130 C50,120 100,140 150,100 C200,60 250,90 300,50 C350,10 400,40 450,20 L500,10" fill="none" stroke="#2424eb" strokeLinecap="round" strokeWidth="4"></path>
-                                    <path d="M0,140 C50,135 100,145 150,120 C200,95 250,110 300,80 C350,50 400,70 450,60 L500,55" fill="none" stroke="#94a3b8" strokeDasharray="5,5" strokeLinecap="round" strokeWidth="2"></path>
-                                    <path d="M0,130 C50,120 100,140 150,100 C200,60 250,90 300,50 C350,10 400,40 450,20 L500,10 L500,150 L0,150 Z" fill="url(#grad1)" opacity="0.1"></path>
+                            <div className="flex-1 relative flex items-center justify-center">
+                                <svg className="w-full h-40" viewBox="0 0 500 150">
+                                    <path d="M0,130 C50,120 100,140 150,100 C200,60 250,90 300,50 C350,10 400,40 450,20 L500,10" fill="none" stroke="#137fec" strokeWidth="6" strokeLinecap="round" />
+                                    <path d="M0,130 C50,120 100,140 150,100 C200,60 250,90 300,50 C350,10 400,40 450,20 L500,10 V150 H0 Z" fill="url(#grad)" opacity="0.1" />
                                     <defs>
-                                        <linearGradient id="grad1" x1="0%" x2="0%" y1="0%" y2="100%">
-                                            <stop offset="0%" style={{ stopColor: '#2424eb', stopOpacity: 1 }}></stop>
-                                            <stop offset="100%" style={{ stopColor: '#2424eb', stopOpacity: 0 }}></stop>
+                                        <linearGradient id="grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                            <stop offset="0%" style={{ stopColor: '#137fec', stopOpacity: 1 }} />
+                                            <stop offset="100%" style={{ stopColor: '#137fec', stopOpacity: 0 }} />
                                         </linearGradient>
                                     </defs>
                                 </svg>
-                                <div className="flex justify-between mt-4 px-2">
-                                    <span className="text-[10px] font-bold text-slate-400">Q1 2023</span>
-                                    <span className="text-[10px] font-bold text-slate-400">Q2 2023</span>
-                                    <span className="text-[10px] font-bold text-slate-400">Q3 2023</span>
-                                    <span className="text-[10px] font-bold text-slate-400">Q4 2023</span>
+                                <div className="absolute inset-x-0 bottom-0 flex justify-between px-2">
+                                    <span className="text-[10px] font-bold text-slate-400">Q1 2024</span>
+                                    <span className="text-[10px] font-bold text-slate-400">Q2 2024</span>
+                                    <span className="text-[10px] font-bold text-slate-400">Q3 2024</span>
+                                    <span className="text-[10px] font-bold text-slate-400">Q4 2024</span>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    {/* Detailed Table Section */}
-                    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-                        <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                            <h3 className="text-slate-900 dark:text-white font-bold text-lg">Detailed Intervention Costs</h3>
-                            <div className="flex items-center gap-2 w-full sm:w-auto">
-                                <select className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 px-3 py-2 outline-none focus:ring-2 focus:ring-primary/20">
-                                    <option>All Statuses</option>
-                                    <option>Invoiced</option>
-                                    <option>Pending</option>
-                                </select>
-                                <button className="flex-1 sm:flex-none px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-750 text-slate-900 dark:text-white text-sm font-bold rounded-lg transition-colors">
-                                    Filter
+
+                    {/* Transaction Table */}
+                    <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                        <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-50/50 dark:bg-slate-900/50">
+                            <h2 className="text-xl font-black text-slate-900 dark:text-white">Detailed Intervention Costs</h2>
+                            <div className="flex items-center gap-3 w-full md:w-auto">
+                                <div className="relative flex-1 md:w-64">
+                                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                                    <select className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-xs appearance-none outline-none focus:ring-2 focus:ring-primary/20">
+                                        <option>All Statuses</option>
+                                        <option>Invoiced</option>
+                                        <option>Pending</option>
+                                    </select>
+                                </div>
+                                <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-50 transition-all">
+                                    <Calendar className="w-4 h-4" /> Date Range
+                                </button>
+                                <button className="p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-400 hover:text-primary">
+                                    <Download size={18} />
                                 </button>
                             </div>
                         </div>
+
                         <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
-                                <thead>
-                                    <tr className="bg-slate-50 dark:bg-slate-800/50">
-                                        <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Ticket ID</th>
-                                        <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Intervention &amp; Client</th>
-                                        <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Material Cost</th>
-                                        <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Labor Cost</th>
-                                        <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Total Cost</th>
-                                        <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Status</th>
-                                        <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Action</th>
+                            <table className="w-full text-left">
+                                <thead className="bg-slate-50 dark:bg-slate-800/50 text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                                    <tr>
+                                        <th className="px-6 py-4">Ticket ID</th>
+                                        <th className="px-6 py-4">Title & Location</th>
+                                        <th className="px-6 py-4 text-right">Material</th>
+                                        <th className="px-6 py-4 text-right">Labor</th>
+                                        <th className="px-6 py-4 text-right">Total</th>
+                                        <th className="px-6 py-4 text-center">Status</th>
+                                        <th className="px-6 py-4 text-right">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                                    {/* Row 1 */}
-                                    <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group">
-                                        <td className="px-6 py-4 text-sm font-semibold text-primary">#TK-8492</td>
-                                        <td className="px-6 py-4">
-                                            <p className="text-sm font-bold text-slate-900 dark:text-white">HVAC System Repair</p>
-                                            <p className="text-xs text-slate-500">Global Tech Park, Building A</p>
-                                        </td>
-                                        <td className="px-6 py-4 text-sm font-medium text-slate-900 dark:text-white text-right">$1,240.00</td>
-                                        <td className="px-6 py-4 text-sm font-medium text-slate-900 dark:text-white text-right">$450.00</td>
-                                        <td className="px-6 py-4 text-sm font-bold text-slate-900 dark:text-white text-right">$1,690.00</td>
-                                        <td className="px-6 py-4 text-center">
-                                            <span className="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-900/30 px-2 py-1 text-xs font-bold text-emerald-700 dark:text-emerald-400">
-                                                Invoiced
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <button className="text-slate-400 hover:text-primary transition-colors">
-                                                <span className="material-symbols-outlined">visibility</span>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                    {/* Row 2 */}
-                                    <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group">
-                                        <td className="px-6 py-4 text-sm font-semibold text-primary">#TK-8501</td>
-                                        <td className="px-6 py-4">
-                                            <p className="text-sm font-bold text-slate-900 dark:text-white">Main Entrance Door Sensor</p>
-                                            <p className="text-xs text-slate-500">Retail Hub East</p>
-                                        </td>
-                                        <td className="px-6 py-4 text-sm font-medium text-slate-900 dark:text-white text-right">$215.00</td>
-                                        <td className="px-6 py-4 text-sm font-medium text-slate-900 dark:text-white text-right">$180.00</td>
-                                        <td className="px-6 py-4 text-sm font-bold text-slate-900 dark:text-white text-right">$395.00</td>
-                                        <td className="px-6 py-4 text-center">
-                                            <span className="inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-900/30 px-2 py-1 text-xs font-bold text-amber-700 dark:text-amber-400">
-                                                Pending
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <button className="bg-primary text-white text-[10px] px-2 py-1 rounded font-bold uppercase tracking-tight hover:bg-primary/90">
-                                                Invoice
-                                            </button>
-                                        </td>
-                                    </tr>
-                                    {/* Row 3 */}
-                                    <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group">
-                                        <td className="px-6 py-4 text-sm font-semibold text-primary">#TK-8512</td>
-                                        <td className="px-6 py-4">
-                                            <p className="text-sm font-bold text-slate-900 dark:text-white">Electrical Re-wiring</p>
-                                            <p className="text-xs text-slate-500">Apartments Central</p>
-                                        </td>
-                                        <td className="px-6 py-4 text-sm font-medium text-slate-900 dark:text-white text-right">$4,500.00</td>
-                                        <td className="px-6 py-4 text-sm font-medium text-slate-900 dark:text-white text-right">$1,200.00</td>
-                                        <td className="px-6 py-4 text-sm font-bold text-rose-600 dark:text-rose-400 text-right">$5,700.00</td>
-                                        <td className="px-6 py-4 text-center">
-                                            <span className="inline-flex items-center rounded-full bg-rose-100 dark:bg-rose-900/30 px-2 py-1 text-xs font-bold text-rose-700 dark:text-rose-400">
-                                                Over Budget
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <button className="text-slate-400 hover:text-primary transition-colors">
-                                                <span className="material-symbols-outlined">more_horiz</span>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                    {/* Row 4 */}
-                                    <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group">
-                                        <td className="px-6 py-4 text-sm font-semibold text-primary">#TK-8520</td>
-                                        <td className="px-6 py-4">
-                                            <p className="text-sm font-bold text-slate-900 dark:text-white">Emergency Pipe Repair</p>
-                                            <p className="text-xs text-slate-500">Western Medical Plaza</p>
-                                        </td>
-                                        <td className="px-6 py-4 text-sm font-medium text-slate-900 dark:text-white text-right">$85.00</td>
-                                        <td className="px-6 py-4 text-sm font-medium text-slate-900 dark:text-white text-right">$350.00</td>
-                                        <td className="px-6 py-4 text-sm font-bold text-slate-900 dark:text-white text-right">$435.00</td>
-                                        <td className="px-6 py-4 text-center">
-                                            <span className="inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-900/30 px-2 py-1 text-xs font-bold text-amber-700 dark:text-amber-400">
-                                                Pending
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <button className="bg-primary text-white text-[10px] px-2 py-1 rounded font-bold uppercase tracking-tight hover:bg-primary/90">
-                                                Invoice
-                                            </button>
-                                        </td>
-                                    </tr>
+                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                    {records.map((record) => (
+                                        <tr key={record.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-all group">
+                                            <td className="px-6 py-4">
+                                                <span className="text-xs font-bold text-primary">{record.id.substring(record.id.length - 6).toUpperCase()}</span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-bold text-slate-900 dark:text-white capitalize">{record.category}</span>
+                                                    <span className="text-[10px] text-slate-500 font-medium">{record.description}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-right font-medium text-sm">
+                                                {record.category === 'parts' ? record.amount.toLocaleString() : '-'}
+                                            </td>
+                                            <td className="px-6 py-4 text-right font-medium text-sm">
+                                                {record.category === 'labor' ? record.amount.toLocaleString() : '-'}
+                                            </td>
+                                            <td className="px-6 py-4 text-right font-black text-sm text-slate-900 dark:text-white">
+                                                {record.amount.toLocaleString()} {record.currency}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex justify-center">
+                                                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${getStatusStyle(record.status)}`}>
+                                                        {record.status}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-primary"><Eye size={16} /></button>
+                                                    <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-primary"><MoreHorizontal size={16} /></button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {records.length === 0 && (
+                                        <tr>
+                                            <td colSpan={7} className="px-6 py-12 text-center text-slate-500 text-sm font-bold">
+                                                Aucun enregistrement financier trouvé
+                                            </td>
+                                        </tr>
+                                    )}
                                 </tbody>
                             </table>
                         </div>
-                        {/* Pagination */}
-                        <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                            <p className="text-sm text-slate-500">Showing 1 to 4 of 24 tickets</p>
-                            <div className="flex items-center gap-2">
-                                <button className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors disabled:opacity-50" disabled>
-                                    <span className="material-symbols-outlined text-sm">chevron_left</span>
-                                </button>
-                                <button className="size-8 rounded bg-primary text-white text-xs font-bold flex items-center justify-center">1</button>
-                                <button className="size-8 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold transition-colors flex items-center justify-center">2</button>
-                                <button className="size-8 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold transition-colors flex items-center justify-center">3</button>
-                                <button className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
-                                    <span className="material-symbols-outlined text-sm">chevron_right</span>
-                                </button>
+
+                        <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex justify-between items-center rounded-b-3xl">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Showing 4 of 24 entries</span>
+                            <div className="flex gap-2">
+                                <button className="size-8 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-400 hover:bg-white transition-all"><ChevronLeft size={16} /></button>
+                                <button className="size-8 rounded-lg bg-primary text-white text-xs font-bold shadow-md">1</button>
+                                <button className="size-8 rounded-lg text-xs font-bold text-slate-500 hover:bg-white transition-all">2</button>
+                                <button className="size-8 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-400 hover:bg-white transition-all"><ChevronRight size={16} /></button>
                             </div>
                         </div>
                     </div>
-                </main>
-                <footer className="mt-auto border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-6">
-                    <div className="max-w-[1280px] mx-auto px-4 md:px-10 flex flex-col md:flex-row justify-between items-center gap-4">
-                        <p className="text-sm text-slate-500">© 2023 CostTrack Pro. All financial data encrypted.</p>
-                        <div className="flex items-center gap-6">
-                            <a className="text-sm text-slate-500 hover:text-primary transition-colors" href="#">Help Center</a>
-                            <a className="text-sm text-slate-500 hover:text-primary transition-colors" href="#">Privacy Policy</a>
-                            <a className="text-sm text-slate-500 hover:text-primary transition-colors" href="#">Security</a>
-                        </div>
-                    </div>
-                </footer>
-            </div>
+                </div>
+            </main>
         </div>
     );
 }

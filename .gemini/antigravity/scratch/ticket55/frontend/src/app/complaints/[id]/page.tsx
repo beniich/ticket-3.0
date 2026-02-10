@@ -1,326 +1,304 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { useComplaint, ComplaintStatus } from '@/hooks/useComplaints';
+import { useTeams } from '@/hooks/useTeams';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import {
+    ChevronLeft,
+    MoreVertical,
+    Calendar,
+    MapPin,
+    Phone,
+    User,
+    Clock,
+    CheckCircle2,
+    AlertTriangle,
+    MessageSquare,
+    ArrowRight,
+    UserPlus,
+    CheckCircle
+} from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function ComplaintDetailPage() {
+    const params = useParams();
+    const router = useRouter();
+    const id = params.id as string;
+    const { complaint, loading, error, updateComplaint, assignTeam } = useComplaint(id);
+    const { teams } = useTeams();
     const [newNote, setNewNote] = useState('');
+    const [isUpdating, setIsUpdating] = useState(false);
+    const [isAssigning, setIsAssigning] = useState(false);
+    const [showAssignModal, setShowAssignModal] = useState(false);
+
+    const handleStatusUpdate = async (newStatus: ComplaintStatus) => {
+        setIsUpdating(true);
+        const result = await updateComplaint({ status: newStatus });
+        setIsUpdating(false);
+
+        if (result.success) {
+            toast.success(`Statut mis à jour: ${newStatus}`);
+        } else {
+            toast.error(result.error || 'Erreur lors de la mise à jour');
+        }
+    };
+
+    const handleAssignTeam = async (teamId: string) => {
+        setIsAssigning(true);
+        const result = await assignTeam(teamId);
+        setIsAssigning(false);
+        setShowAssignModal(false);
+
+        if (result.success) {
+            toast.success('Équipe assignée avec succès !');
+        } else {
+            toast.error(result.error);
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-950">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+        );
+    }
+
+    if (error || !complaint) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-slate-50 dark:bg-slate-950">
+                <div className="p-4 bg-red-50 text-red-600 rounded-xl mb-4 max-w-md text-center">
+                    {error || 'Réclamation introuvable'}
+                </div>
+                <button onClick={() => router.push('/complaints')} className="text-primary font-bold hover:underline">
+                    Retour à la liste
+                </button>
+            </div>
+        );
+    }
 
     return (
-        <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen font-display">
-            {/* Top Navigation Bar */}
-            <header className="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-3">
-                <div className="max-w-[1440px] mx-auto flex items-center justify-between">
-                    <div className="flex items-center gap-8">
-                        <div className="flex items-center gap-2">
-                            <div className="bg-primary p-1.5 rounded-lg text-white">
-                                <span className="material-symbols-outlined block">confirmation_number</span>
-                            </div>
-                            <h1 className="text-lg font-bold tracking-tight">
-                                Intervention<span className="text-primary">Hub</span>
-                            </h1>
+        <div className="bg-slate-50 dark:bg-slate-950 text-slate-100 min-h-screen font-display pb-20 lg:pb-0">
+            {/* Assignment Modal */}
+            {showAssignModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-[32px] overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in duration-200">
+                        <div className="p-8 border-b border-slate-100 dark:border-slate-800">
+                            <h3 className="text-xl font-black text-slate-900 dark:text-white">Assigner une Équipe</h3>
+                            <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-2">Services Opérationnels Disponibles</p>
                         </div>
-                        <nav className="hidden md:flex items-center gap-6">
-                            <a className="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-primary transition-colors" href="/dashboard">
-                                Dashboard
-                            </a>
-                            <a className="text-sm font-semibold text-primary" href="/complaints">
-                                Complaints
-                            </a>
-                            <a className="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-primary transition-colors" href="/teams">
-                                Teams
-                            </a>
-                            <a className="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-primary transition-colors" href="#">
-                                Reports
-                            </a>
-                        </nav>
+                        <div className="p-6 max-h-[400px] overflow-y-auto space-y-3">
+                            {teams.map(team => (
+                                <button
+                                    key={team._id}
+                                    onClick={() => handleAssignTeam(team._id)}
+                                    disabled={isAssigning}
+                                    className="w-full p-4 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-primary/50 hover:bg-primary/5 text-left transition-all group flex items-center justify-between"
+                                >
+                                    <div>
+                                        <h4 className="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors">{team.name}</h4>
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{team.status}</p>
+                                    </div>
+                                    <div className="size-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
+                                        <ArrowRight className="w-4 h-4" />
+                                    </div>
+                                </button>
+                            ))}
+                            {teams.length === 0 && (
+                                <p className="text-center py-8 text-slate-500 text-sm font-bold">Aucune équipe opérationnelle trouvée</p>
+                            )}
+                        </div>
+                        <div className="p-6 bg-slate-50/50 dark:bg-slate-900/50 flex justify-end gap-3">
+                            <button
+                                onClick={() => setShowAssignModal(false)}
+                                className="px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest text-slate-500 hover:text-slate-900"
+                            >
+                                Annuler
+                            </button>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                        <div className="relative hidden lg:block">
-                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">search</span>
-                            <input
-                                className="bg-slate-100 dark:bg-slate-800 border-none rounded-lg pl-10 pr-4 py-2 text-sm w-64 focus:ring-2 focus:ring-primary"
-                                placeholder="Search tickets..."
-                                type="text"
-                            />
-                        </div>
-                        <button className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 relative">
-                            <span className="material-symbols-outlined">notifications</span>
-                            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-900"></span>
+                </div>
+            )}
+
+            {/* Header / Nav */}
+            <header className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-6 py-4">
+                <div className="max-w-[1400px] mx-auto flex items-center justify-between">
+                    <div className="flex items-center gap-6">
+                        <button onClick={() => router.push('/complaints')} className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-all">
+                            <ChevronLeft className="w-5 h-5" />
                         </button>
-                        <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden border border-slate-200 dark:border-slate-700">
-                            <img className="w-full h-full object-cover" alt="User profile" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop" />
+                        <div>
+                            <div className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-400 tracking-widest mb-0.5">
+                                <span>Ticket Management</span>
+                                <span className="text-slate-300">/</span>
+                                <span className="text-primary">{complaint.number}</span>
+                            </div>
+                            <h1 className="text-lg font-bold text-slate-900 dark:text-white leading-tight">Détails de l'Intervention</h1>
                         </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <button className="hidden sm:flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
+                            <MoreVertical className="w-4 h-4" />
+                        </button>
                     </div>
                 </div>
             </header>
 
-            <main className="max-w-[1440px] mx-auto p-6">
-                {/* Ticket Header Action Bar */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                    <div>
-                        <div className="flex items-center gap-3 mb-1">
-                            <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Tickets / REC-001</span>
-                            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20">
-                                IN PROGRESS
+            <main className="max-w-[1400px] mx-auto p-6 md:p-8">
+                {/* Hero Summary */}
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-10">
+                    <div className="space-y-2">
+                        <div className="flex flex-wrap items-center gap-3">
+                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm ${complaint.status === 'résolue' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                complaint.status === 'en cours' ? 'bg-blue-50 text-blue-600 border-blue-100' :
+                                    'bg-purple-50 text-purple-600 border-purple-100'
+                                }`}>
+                                {complaint.status}
                             </span>
-                            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200 uppercase">
-                                High Priority
+                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm ${complaint.priority === 'urgent' ? 'bg-red-50 text-red-600 border-red-100' :
+                                complaint.priority === 'high' ? 'bg-orange-50 text-orange-600 border-orange-100' :
+                                    'bg-slate-50 text-slate-600 border-slate-100'
+                                }`}>
+                                Priority: {complaint.priority || 'low'}
                             </span>
                         </div>
-                        <h2 className="text-3xl font-black text-slate-900 dark:text-white">Water Leakage in Main Lobby</h2>
-                        <p className="text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-base">calendar_today</span>
-                            Created on Oct 24, 2023 at 09:00 AM • Reported by Web Portal
+                        <h2 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight">{complaint.leakType}</h2>
+                        <p className="flex items-center gap-2 text-sm text-slate-500 font-medium">
+                            <Calendar className="w-4 h-4" />
+                            Créé le {format(new Date(complaint.createdAt), "d MMMM yyyy 'à' HH:mm", { locale: fr })}
                         </p>
                     </div>
+
                     <div className="flex items-center gap-3">
-                        <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">
-                            <span className="material-symbols-outlined text-lg">person_add</span> Reassign
-                        </button>
-                        <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">
-                            <span className="material-symbols-outlined text-lg">task_alt</span> Resolve
-                        </button>
-                        <button className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-semibold text-sm hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">
-                            <span className="material-symbols-outlined text-lg">add</span> New Note
+                        {complaint.status !== 'résolue' && (
+                            <button
+                                onClick={() => handleStatusUpdate('résolue')}
+                                disabled={isUpdating}
+                                className="flex items-center gap-2 px-6 py-3 bg-emerald-500 text-white rounded-2xl font-black text-sm shadow-xl shadow-emerald-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
+                            >
+                                <CheckCircle className="w-4 h-4" />
+                                MARQUER COMME RÉSOLUE
+                            </button>
+                        )}
+                        <button
+                            onClick={() => setShowAssignModal(true)}
+                            className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-2xl font-black text-sm shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                        >
+                            <UserPlus className="w-4 h-4" />
+                            ASSIGNER ÉQUIPE
                         </button>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                    {/* Left Side: Timeline & Details (8 Columns) */}
+                    {/* Left Column: Details & Notes */}
                     <div className="lg:col-span-8 space-y-8">
-                        {/* Central Timeline */}
-                        <section className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-800">
-                            <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-                                <span className="material-symbols-outlined text-primary">timeline</span> Intervention Timeline
-                            </h3>
-                            <div className="relative space-y-0">
-                                {/* Vertical line */}
-                                <div className="absolute left-4 top-2 bottom-2 w-0.5 bg-slate-100 dark:bg-slate-800"></div>
-
-                                {/* Step 1: Created */}
-                                <div className="relative pl-12 pb-8">
-                                    <div className="absolute left-0 top-1 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center border-4 border-white dark:border-slate-900">
-                                        <span className="material-symbols-outlined text-green-600 dark:text-green-400 text-base font-bold">check</span>
-                                    </div>
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <p className="font-bold text-slate-900 dark:text-white text-base">Complaint Created</p>
-                                            <p className="text-sm text-slate-500 dark:text-slate-400">System generated via customer portal</p>
-                                        </div>
-                                        <span className="text-xs font-medium text-slate-400">Oct 24, 09:00 AM</span>
-                                    </div>
-                                </div>
-
-                                {/* Step 2: Assigned */}
-                                <div className="relative pl-12 pb-8">
-                                    <div className="absolute left-0 top-1 w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center border-4 border-white dark:border-slate-900">
-                                        <span className="material-symbols-outlined text-blue-600 dark:text-blue-400 text-base font-bold">person</span>
-                                    </div>
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <p className="font-bold text-slate-900 dark:text-white text-base">Assigned to Technical Team</p>
-                                            <p className="text-sm text-slate-500 dark:text-slate-400">Handled by John Smith (Supervisor)</p>
-                                        </div>
-                                        <span className="text-xs font-medium text-slate-400">Oct 24, 10:30 AM</span>
-                                    </div>
-                                </div>
-
-                                {/* Step 3: In Progress (Current) */}
-                                <div className="relative pl-12 pb-2">
-                                    <div className="absolute left-0 top-1 w-8 h-8 rounded-full bg-primary flex items-center justify-center border-4 border-white dark:border-slate-900 ring-4 ring-primary/10">
-                                        <span className="material-symbols-outlined text-white text-base animate-pulse">pending</span>
-                                    </div>
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <p className="font-bold text-slate-900 dark:text-white text-base">Intervention In Progress</p>
-                                            <p className="text-sm text-slate-500 dark:text-slate-400">Technician dispatched to onsite location</p>
-                                            <div className="mt-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700">
-                                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Latest Update</p>
-                                                <p className="text-sm text-slate-700 dark:text-slate-300 italic">
-                                                    "Main valve located, preparing for pipe replacement. Tools assembled." - Marc L.
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <span className="text-xs font-medium text-primary">Just now</span>
-                                    </div>
-                                </div>
+                        {/* Description Card */}
+                        <section className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center gap-3 bg-slate-50/50 dark:bg-slate-800/20">
+                                <Clock className="w-5 h-5 text-primary" />
+                                <h3 className="font-bold">Description de la Réclamation</h3>
                             </div>
-                        </section>
-
-                        {/* Detailed Description */}
-                        <section className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-800">
-                            <h3 className="text-lg font-bold mb-4">Complaint Details</h3>
-                            <div className="prose dark:prose-invert max-w-none text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
-                                <p>
-                                    Customer reports a significant water leak originating from the ceiling of the main entrance lobby. The leak has
-                                    caused a slippery surface near the elevator banks. The building management has placed warning signs, but the volume
-                                    of water is increasing. Immediate intervention is required to prevent electrical damage to the nearby control panel.
+                            <div className="p-8">
+                                <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
+                                    {complaint.description || "Aucune description supplémentaire fournie pour cette réclamation."}
                                 </p>
-                                <ul className="mt-4 space-y-2 list-disc list-inside">
-                                    <li>Origin: Ceiling pipe rupture suspect</li>
-                                    <li>Affected area: Lobby G-Floor</li>
-                                    <li>Risk level: High (Proximity to electrical panels)</li>
-                                </ul>
                             </div>
                         </section>
 
-                        {/* Internal Notes Area */}
-                        <section className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-800">
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-lg font-bold">Internal Team Notes</h3>
-                                <span className="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-xs font-bold text-slate-500">3 NOTES</span>
-                            </div>
-                            <div className="space-y-6">
-                                {/* Note 1 */}
-                                <div className="flex gap-4">
-                                    <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900 flex-shrink-0 flex items-center justify-center font-bold text-indigo-600">
-                                        JS
-                                    </div>
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <span className="text-sm font-bold text-slate-900 dark:text-white">John Smith</span>
-                                            <span className="text-xs text-slate-400">2 hours ago</span>
-                                        </div>
-                                        <p className="text-sm text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 p-3 rounded-lg border border-slate-100 dark:border-slate-700">
-                                            Notified the electrical maintenance team to be on standby just in case the leak spreads to the riser room.
-                                        </p>
-                                    </div>
+                        {/* Note Input */}
+                        <section className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden p-8">
+                            <h3 className="font-bold mb-6 flex items-center gap-3">
+                                <MessageSquare className="w-5 h-5 text-primary" />
+                                Notes d'Intervention
+                            </h3>
+                            <div className="flex gap-4">
+                                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center font-black text-primary text-xs flex-shrink-0">
+                                    AD
                                 </div>
-
-                                {/* Quick Reply Input */}
-                                <div className="mt-8 flex gap-4">
-                                    <div className="w-10 h-10 rounded-full bg-primary/20 flex-shrink-0 flex items-center justify-center font-bold text-primary">
-                                        AM
-                                    </div>
-                                    <div className="flex-1">
-                                        <textarea
-                                            className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-primary focus:border-primary p-3"
-                                            placeholder="Add an internal note..."
-                                            rows={2}
-                                            value={newNote}
-                                            onChange={(e) => setNewNote(e.target.value)}
-                                        />
-                                        <div className="flex justify-end mt-2">
-                                            <button className="bg-primary text-white text-xs font-bold py-2 px-4 rounded-lg hover:bg-primary/90 transition-all">
-                                                Post Note
-                                            </button>
-                                        </div>
+                                <div className="flex-1 space-y-3">
+                                    <textarea
+                                        className="w-full p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-slate-100"
+                                        placeholder="Ajouter une note de suivi..."
+                                        rows={3}
+                                    />
+                                    <div className="flex justify-end">
+                                        <button className="px-6 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-bold text-xs hover:opacity-90 transition-all">
+                                            Publier la Note
+                                        </button>
                                     </div>
                                 </div>
                             </div>
                         </section>
                     </div>
 
-                    {/* Right Side: Sidebar Panels (4 Columns) */}
-                    <aside className="lg:col-span-4 space-y-6">
-                        {/* Client Details Panel */}
-                        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-                            <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
-                                <h4 className="font-bold text-sm text-slate-900 dark:text-white">Client Information</h4>
+                    {/* Right Column: Info Panels */}
+                    <div className="lg:col-span-4 space-y-6">
+                        {/* Customer Info */}
+                        <section className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                            <div className="p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
+                                <h3 className="font-bold text-sm uppercase tracking-wider text-slate-500">Client Info</h3>
                             </div>
-                            <div className="p-6">
-                                <div className="flex items-center gap-4 mb-6">
-                                    <div className="w-14 h-14 rounded-xl bg-slate-100 dark:bg-slate-800 overflow-hidden flex-shrink-0 border border-slate-200 dark:border-slate-700">
-                                        <img className="w-full h-full object-cover" alt="Client profile" src="https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=200&h=200&fit=crop" />
+                            <div className="p-6 space-y-6">
+                                <div className="flex items-center gap-4">
+                                    <div className="size-14 rounded-2xl bg-primary/10 flex items-center justify-center font-black text-primary text-xl">
+                                        {complaint.firstName[0]}{complaint.lastName[0]}
                                     </div>
                                     <div>
-                                        <p className="font-bold text-slate-900 dark:text-white text-lg">Acme Property Corp</p>
-                                        <p className="text-sm text-slate-500 dark:text-slate-400">Contact: Robert Wilson</p>
+                                        <h4 className="font-bold text-slate-900 dark:text-white text-lg">{complaint.firstName} {complaint.lastName}</h4>
+                                        <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-0.5">Reported via App</p>
                                     </div>
                                 </div>
                                 <div className="space-y-4">
-                                    <div className="flex items-center gap-3 text-sm">
-                                        <span className="material-symbols-outlined text-slate-400">call</span>
-                                        <span className="text-slate-600 dark:text-slate-300 font-medium">+1 (555) 123-4567</span>
+                                    <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50">
+                                        <MapPin className="w-5 h-5 text-slate-400" />
+                                        <span className="font-medium">{complaint.address}</span>
                                     </div>
-                                    <div className="flex items-center gap-3 text-sm">
-                                        <span className="material-symbols-outlined text-slate-400">mail</span>
-                                        <span className="text-slate-600 dark:text-slate-300 font-medium underline decoration-primary/30">
-                                            robert@acmeproperty.com
-                                        </span>
-                                    </div>
-                                    <div className="flex items-start gap-3 text-sm">
-                                        <span className="material-symbols-outlined text-slate-400">location_on</span>
-                                        <span className="text-slate-600 dark:text-slate-300 font-medium leading-tight">
-                                            4521 Business Plaza, Suite 402,<br />
-                                            New York, NY 10001
-                                        </span>
+                                    <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50">
+                                        <Phone className="w-5 h-5 text-slate-400" />
+                                        <span className="font-medium">{complaint.phone}</span>
                                     </div>
                                 </div>
-                                <button className="w-full mt-6 flex items-center justify-center gap-2 py-2.5 px-4 bg-primary/10 text-primary hover:bg-primary/20 transition-all rounded-lg font-bold text-sm">
-                                    <span className="material-symbols-outlined text-base">chat_bubble</span> Send Message
+                                <button className="w-full py-4 rounded-2xl bg-slate-100 dark:bg-slate-800 font-bold text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all flex items-center justify-center gap-2">
+                                    <Phone className="w-4 h-4" />
+                                    Appeler le Client
                                 </button>
                             </div>
-                        </div>
+                        </section>
 
-                        {/* Map Snippet */}
-                        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-                            <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex justify-between items-center">
-                                <h4 className="font-bold text-sm text-slate-900 dark:text-white">Intervention Site</h4>
-                                <span className="text-[10px] font-black bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded">
-                                    G-FLOOR
-                                </span>
+                        {/* Assignment Status */}
+                        <section className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                            <div className="p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 flex items-center justify-between">
+                                <h3 className="font-bold text-sm uppercase tracking-wider text-slate-500">Assignment</h3>
                             </div>
-                            <div className="h-48 relative bg-slate-100 dark:bg-slate-800">
-                                <div className="absolute inset-0 bg-slate-200 dark:bg-slate-700 opacity-50 overflow-hidden" style={{ backgroundImage: 'radial-gradient(#94a3b8 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                    <div className="relative">
-                                        <span className="material-symbols-outlined text-4xl text-primary animate-bounce">location_on</span>
-                                        <div className="w-4 h-4 bg-primary/20 rounded-full blur-md mx-auto"></div>
-                                    </div>
-                                </div>
-                                <div className="absolute bottom-2 left-2 right-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm p-2 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-sm text-slate-400">directions_car</span>
-                                    <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-tight">
-                                        ETA for support: 15 mins away
-                                    </span>
-                                </div>
-                            </div>
-                            <div className="p-3 bg-slate-50 dark:bg-slate-800 flex justify-between items-center">
-                                <span className="text-xs font-medium text-slate-500">Coordinates: 40.7128° N, 74.0060° W</span>
-                                <button className="text-xs font-bold text-primary hover:underline">View Map</button>
-                            </div>
-                        </div>
-
-                        {/* Attachments Section */}
-                        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-                            <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
-                                <h4 className="font-bold text-sm text-slate-900 dark:text-white">Evidence & Photos</h4>
-                            </div>
-                            <div className="p-4">
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="aspect-square rounded-lg bg-slate-100 dark:bg-slate-800 overflow-hidden relative group cursor-pointer border border-slate-200 dark:border-slate-700">
-                                        <img className="w-full h-full object-cover" alt="Ceiling leak" src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=400&h=400&fit=crop" />
-                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                            <span className="material-symbols-outlined text-white">visibility</span>
+                            <div className="p-8 text-center">
+                                {complaint.assignedTo ? (
+                                    <div className="space-y-4">
+                                        <div className="size-16 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center mx-auto mb-2">
+                                            <User className="w-8 h-8" />
+                                        </div>
+                                        <div>
+                                            <p className="font-bold">Team Alpha Dispatched</p>
+                                            <p className="text-xs text-slate-500">Assigned 2 hours ago</p>
                                         </div>
                                     </div>
-                                    <div className="aspect-square rounded-lg bg-slate-100 dark:bg-slate-800 overflow-hidden relative group cursor-pointer border border-slate-200 dark:border-slate-700">
-                                        <img className="w-full h-full object-cover" alt="Lobby flooding" src="https://images.unsplash.com/photo-1521791136064-7986c2920216?w=400&h=400&fit=crop" />
-                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                            <span className="material-symbols-outlined text-white">visibility</span>
+                                ) : (
+                                    <div className="space-y-4 py-4">
+                                        <div className="size-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-2">
+                                            <AlertTriangle className="w-8 h-8 text-slate-400" />
                                         </div>
+                                        <p className="text-sm font-bold text-slate-500">Pas d'équipe assignée</p>
+                                        <button className="text-primary font-bold text-xs hover:underline uppercase tracking-widest">Assigner Maintenant</button>
                                     </div>
-                                </div>
-                                <button className="w-full mt-4 flex items-center justify-center gap-2 py-2 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg text-slate-400 hover:text-primary hover:border-primary transition-all font-semibold text-xs">
-                                    <span className="material-symbols-outlined text-base">cloud_upload</span> Upload File
-                                </button>
+                                )}
                             </div>
-                        </div>
-                    </aside>
+                        </section>
+                    </div>
                 </div>
             </main>
-
-            {/* Bottom Action Bar (Mobile) */}
-            <div className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 px-6 py-4 lg:hidden">
-                <div className="flex items-center gap-3">
-                    <button className="flex-1 py-3 bg-primary text-white rounded-xl font-bold text-sm shadow-lg shadow-primary/20">Add Note</button>
-                    <button className="px-4 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl">
-                        <span className="material-symbols-outlined">more_horiz</span>
-                    </button>
-                </div>
-            </div>
         </div>
     );
 }

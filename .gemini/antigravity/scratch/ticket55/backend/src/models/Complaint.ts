@@ -10,6 +10,16 @@ export interface IComplaint extends Document {
     phone: string;
     leakType: string;
     description?: string;
+    priority?: 'low' | 'medium' | 'high' | 'urgent';
+    category?: string;
+    resolvedAt?: Date;
+    closedAt?: Date;
+    assignedTo?: string; // or Schema.Types.ObjectId
+    location?: {
+        address?: string;
+        lat?: number;
+        lng?: number;
+    };
     status: ComplaintStatus;
     createdAt: Date;
     updatedAt: Date;
@@ -24,6 +34,21 @@ const ComplaintSchema: Schema = new Schema(
         phone: { type: String, required: true },
         leakType: { type: String, required: true },
         description: { type: String },
+
+        priority: {
+            type: String,
+            enum: ['low', 'medium', 'high', 'urgent'],
+            default: 'low'
+        },
+        category: { type: String, default: 'Autres' },
+        resolvedAt: { type: Date },
+        closedAt: { type: Date },
+        assignedTo: { type: Schema.Types.ObjectId, ref: 'Team' },
+        location: {
+            address: { type: String },
+            lat: { type: Number },
+            lng: { type: Number }
+        },
         status: {
             type: String,
             enum: ['nouvelle', 'en cours', 'résolue', 'fermée'],

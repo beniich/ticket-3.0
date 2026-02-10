@@ -34,3 +34,21 @@ export const adminOnly = (req: Request, res: Response, next: NextFunction) => {
         return res.status(403).json({ message: 'Accès admin requis' });
     next();
 };
+
+// Alias pour compatibilité
+export const authenticate = protect;
+
+export const authorize = (...roles: string[]) => {
+    return (req: Request, res: Response, next: NextFunction) => {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Non authentifié' });
+        }
+        if (!roles.includes(req.user.role)) {
+            return res.status(403).json({
+                message: `Rôle ${req.user.role} non autorisé pour cette action`
+            });
+        }
+        next();
+    };
+};
+

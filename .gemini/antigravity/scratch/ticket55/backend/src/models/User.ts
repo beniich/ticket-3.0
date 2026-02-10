@@ -5,6 +5,15 @@ export interface IUser extends Document {
     email: string;
     password: string;
     role: 'admin' | 'dispatcher' | 'staff';
+    phone?: string;
+    isActive: boolean;
+    preferences?: {
+        notifications?: {
+            email: boolean;
+            sms: boolean;
+            push: boolean;
+        };
+    };
     comparePassword(candidate: string): Promise<boolean>;
 }
 
@@ -16,6 +25,15 @@ const UserSchema: Schema = new Schema(
             type: String,
             enum: ['admin', 'dispatcher', 'staff'],
             default: 'staff'
+        },
+        phone: { type: String },
+        isActive: { type: Boolean, default: true },
+        preferences: {
+            notifications: {
+                email: { type: Boolean, default: true },
+                sms: { type: Boolean, default: false },
+                push: { type: Boolean, default: true }
+            }
         }
     },
     { timestamps: true }

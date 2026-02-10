@@ -10,9 +10,9 @@ module.exports = {
     theme: {
         extend: {
             colors: {
-                "primary": "#2424eb",
-                "background-light": "#f6f6f8",
-                "background-dark": "#111121",
+                "primary": "#137fec",
+                "background-light": "#f6f7f8",
+                "background-dark": "#101922",
                 "status-new": "#2424eb",
                 "status-progress": "#f59e0b",
                 "status-resolved": "#10b981",
@@ -23,9 +23,10 @@ module.exports = {
                 "sans": ["Inter", "sans-serif"]
             },
             borderRadius: {
-                'DEFAULT': '0.5rem',
-                'lg': '1rem',
-                'xl': '1.5rem',
+                'DEFAULT': '0.25rem',
+                'lg': '0.5rem',
+                'xl': '0.75rem',
+                'full': '9999px',
             },
             animation: {
                 'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
